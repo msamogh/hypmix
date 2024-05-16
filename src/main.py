@@ -41,9 +41,6 @@ def populate_scenario(state: Dict[Text, Text]) -> Text:
     pass
 
 
-
-
-
 if __name__ == "__main__":
     prompt = load_prompt(
         system_prompt="system_prompt",
