@@ -1,0 +1,18 @@
+learner_characteristic: persistence
+
+definitions:
+  - definition: the ability to perservere through adversities
+    generic_behaviors:
+      - generic_behavior: won't quit
+        holo_behaviors:
+          - will not press 'X' very early
+          - will continue working on task for long
+      - generic_behavior: will keep talking
+        holo_behaviors:
+          - will keep talking to socratic buddy
+  
+  - definition: the ability to continue working for long hours
+    generic_behaviors:
+      - generic_behavior: will not cry
+        holo_behaviors:
+          - will make happy utterances to SB

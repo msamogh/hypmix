@@ -1,0 +1,4 @@
+- Scenario
+It has been 18 minute(s) since you began the task.
+You have attempted to submit the solution 3 time(s).
+You have reached out to Socratic Buddy 1 time(s).

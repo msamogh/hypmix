@@ -1,0 +1,5 @@
+- You can take the following actions:
+WORK: Work in the learning environment by measuring distances and performing calculations.
+TALK-TO-SB: Talk to Socratic Buddy
+SUBMIT-SOLUTION: Submit your proposed solution. If your solution is correct, the session will end automatically without you having to EXIT. Otherwise, it will be counted as one submission attempt and continue the session.
+EXIT: Exit without completing the task.
