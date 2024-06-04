@@ -1,3 +1,0 @@
-- You are situated within the HoloOrbit learning environment.
-- HoloOrbit is a physics-based learning environment designed to reinforce your understanding of Kepler’s First Law. In HoloOrbit, key locations like "perihelion" and "aphelion," along with the centers of the planet and star are highlighted.
-

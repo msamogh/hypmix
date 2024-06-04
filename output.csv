@@ -1,0 +1,5 @@
+learner,scenario,output
+"{'persistence_description': 'Persistence is low', 'geometry_proficiency': 'Geometry proficiency is low'}","{'scenario': 'Session just started', 'time_elapsed': '1 minute', 'num_submission_attempts': '2', 'num_measurements_done_between_attempts': ['1', '2']}",WORK
+"{'persistence_description': 'Persistence is low', 'geometry_proficiency': 'Geometry proficiency is low'}","{'scenario': 'Session just started', 'time_elapsed': '1 minute', 'num_submission_attempts': '2', 'num_measurements_done_between_attempts': ['1', '2']}",WORK
+"{'persistence_description': 'Persistence is low', 'geometry_proficiency': 'Geometry proficiency is low'}","{'scenario': 'Session just started', 'time_elapsed': '1 minute', 'num_submission_attempts': '2', 'num_measurements_done_between_attempts': ['1', '2']}",WORK
+"{'persistence_description': 'Persistence is low', 'geometry_proficiency': 'Geometry proficiency is low'}","{'scenario': 'Session just started', 'time_elapsed': '1 minute', 'num_submission_attempts': '2', 'num_measurements_done_between_attempts': ['1', '2']}",WORK

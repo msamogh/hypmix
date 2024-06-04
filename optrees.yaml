@@ -1,8 +1,8 @@
 learner_characteristic: persistence
 
 definitions:
-  - definition: the ability to perservere through adversities
-    generic_behaviors:
+  - definition: Maintaining a course of action or keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved
+    subconstruct_mapping:
       - generic_behavior: won't quit
         holo_behaviors:
           - will not press 'X' very early
@@ -12,7 +12,7 @@ definitions:
           - will keep talking to socratic buddy
   
   - definition: the ability to continue working for long hours
-    generic_behaviors:
+    subconstruct_mapping:
       - generic_behavior: will not cry
         holo_behaviors:
           - will make happy utterances to SB
