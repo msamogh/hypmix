@@ -130,8 +130,15 @@ class StateSpace(PromptFragment):
 
     @staticmethod
     @abstractmethod
-    def get_sweep() -> Dict[str, int]:
+    def get_sweep_values() -> Dict[Text, List[Any]]:
         raise NotImplementedError
+
+    @staticmethod
+    def get_sweep(sweep_values: Dict[Text, List[Any]]) -> Iterator[Dict[str, Any]]:
+        keys = sweep_values.keys()
+        values = itertools.product(*sweep_values.values())
+        for value in values:
+            yield dict(zip(keys, value))
 
     @staticmethod
     @abstractmethod
@@ -172,7 +179,7 @@ class HOStateSpaceA(StateSpace):
 NUM_SUBMISSION_ATTEMPTS represents the number of times the user has attempted to submit their answer since the start of the session."""
 
     @staticmethod
-    def get_sweep() -> Dict[str, Any]:
+    def get_sweep_values() -> Dict[str, List[int]]:
         return {
             "time_elapsed_in_minutes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             "num_submission_attempts": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -196,7 +203,7 @@ NUM_FAILED_SUBMISSION_ATTEMPTS represents the number of times the user has submi
         return f"State Space:\nTIME_ELAPSED: {state['time_elapsed_in_minutes']} minutes, NUM_FAILED_SUBMISSION_ATTEMPTS: {state['num_failed_submission_attempts']}"
 
     @staticmethod
-    def get_sweep() -> Dict[str, Any]:
+    def get_sweep_values() -> Dict[str, Any]:
         return {
             "time_elapsed_in_minutes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             "num_failed_submission_attempts": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -335,21 +342,22 @@ def generate_samples(
     action_spaces: List[Type[Enum]],
     model: str = "gpt-3.5-turbo",
 ):
-    generation_samples = [
-        GenerationSample(
-            experiment_id=experiment_id,
-            system_prompt=DefaultSystemPrompt,
-            persistence_model_type=pmt,
-            learner=lc,
-            state_space=ss,
-            action_space=acs,
-            state=state,
-        )
-        for pmt, ss, acs, lc in itertools.product(
-            persistence_model_types, state_spaces, action_spaces, learners
-        )
-        for state in itertools.product(*ss.get_sweep().values())
-    ]
+    generation_samples = []
+    for pmt, ss, acs, lc in itertools.product(
+        persistence_model_types, state_spaces, action_spaces, learners
+    ):
+        for state in ss.get_sweep(ss.get_sweep_values()):
+            generation_samples.append(
+                GenerationSample(
+                    experiment_id=experiment_id,
+                    system_prompt=DefaultSystemPrompt,
+                    persistence_model_type=pmt,
+                    learner=lc,
+                    state_space=ss,
+                    action_space=acs,
+                    state=state,
+                )
+            )
     return generation_samples
 
 
@@ -371,13 +379,13 @@ def run_simulations(client: OpenAI):
             f.write(json.dumps(request) + "\n")
     # Call OpenAI batch prediction API
     file_creation_response = client.files.create(
-        file=open(f"openai_batch_requests/{experiment_id}.jsonl", "rb"), purpose="batch"
+        file=open(f"runs/requests/{experiment_id}.jsonl", "rb"), purpose="batch"
     )
     breakpoint()
     file_id = file_creation_response["id"]
     responses = client.batch.create(generation_requests)
     # Save responses to JSONL file
-    with open("responses.jsonl", "w") as f:
+    with open(f"runs/responses/{experiment_id}.jsonl", "w") as f:
         for response in responses:
             f.write(json.dumps(response) + "\n")
 
