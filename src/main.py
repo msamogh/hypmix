@@ -8,7 +8,6 @@ import os
 from fire import Fire
 from openai import OpenAI
 from dotenv import load_dotenv
-from enum import Enum
 
 load_dotenv(".env.secret")
 
@@ -26,6 +25,53 @@ class PromptFragment(ABC):
     def describe() -> str:
         raise NotImplementedError
 
+    @staticmethod
+    def describe_with_params(**kwargs) -> str:
+        raise NotImplementedError
+
+
+class PersistenceModel(PromptFragment):
+    @staticmethod
+    def describe_with_params(**kwargs) -> str:
+        assert "persistence_model_type" in kwargs and isinstance(
+            kwargs["persistence_model_type"], PersistenceModelType
+        )
+
+        if kwargs["persistence_model_type"] == PersistenceModelType.THEORETICAL:
+            return "Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.'"
+        elif (
+            kwargs["persistence_model_type"]
+            == PersistenceModelType.THEORY_PLUS_COMPUTATIONAL
+        ):
+            return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
+            
+Computationally, in the context of HoloOrbits, the sub-constructs in the theoretical definition of 'persistence' is mapped to the following specific learner actions in the learning environment.
+            
+1. "keeping at a task" -> MEASURE, USE_CALCULATOR
+2. "finishing it" -> SUBMIT
+3. "despite the obstacles" -> ASK_FOR_HELP, ASK_FOR_HINT"""
+        elif (
+            kwargs["persistence_model_type"]
+            == PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS
+        ):
+            return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
+            
+Computationally, in the context of HoloOrbits, the sub-constructs in the theoretical definition of 'persistence' is mapped to the following specific learner actions in the learning environment.
+
+1. "keeping at a task" -> MEASURE, USE_CALCULATOR
+2. "finishing it" -> SUBMIT
+3. "despite the obstacles" -> ASK_FOR_HELP, ASK_FOR_HINT
+
+Concretely, act according to the following hypothesis:
+1. For any given value of TIME_ELAPSED in the state, learners with higher persistence levels are less likely to abandon the session compared to learners with lower persistence levels."""
+
+
+class SystemPrompt(PromptFragment):
+
+    @staticmethod
+    def describe() -> str:
+        return """You are a simulated learner agent working in a learning environment designed to test your understanding of Kepler's First Law. Given a scenario in the learning environment, you will generate the next action that a 13 year old human learner who possesses the given learner characteristics would most likely perform in the given situation. The stipulated class period for this activity is 40 minutes. The teacher has instructed you to work on the activity for the entire class period."""
+
 
 class LearningTask(PromptFragment):
 
@@ -34,16 +80,33 @@ class LearningTask(PromptFragment):
         return """Your goal in the learning task is to show that the motion of the orbiting planet in the planetary systems is in accordance with Kepler's First Law."""
 
 
+class SimulatorInstruction(PromptFragment):
+
+    @staticmethod
+    def describe() -> str:
+        return """Given the scenario, choose the most likely next action such that it is consistent with your Learner Characteristics. 
+
+Next Action (one of the possible actions defined the action space):"""
+
+
 class Learner(PromptFragment):
 
     persistence_level: int
+    geometry_proficiency: int
+
+    def __post_init__(self):
+        if self.persistence_level not in range(1, 11):
+            raise ValueError("Persistence level must be between 1 and 10.")
+        if self.geometry_proficiency not in range(1, 11):
+            raise ValueError("Geometry proficiency must be between 1 and 10.")
 
     @staticmethod
     def describe() -> str:
         return """The learner is a high school student who has just learned about Kepler's First Law and is trying to apply it to the motion of the orbiting planet in the planetary system."""
-    
+
     def str_format(self) -> str:
-        return f"""Persistence Level: {self.persistence_level}"""
+        return f"""Persistence Level: {self.persistence_level}
+        Geometry Proficiency: {self.geometry_proficiency}"""
 
 
 @dataclass
@@ -76,6 +139,10 @@ class ActionSpace(PromptFragment):
     action_space_name: str
 
     @staticmethod
+    def actions():
+        raise NotImplementedError
+
+    @staticmethod
     def describe() -> str:
         raise NotImplementedError
 
@@ -88,18 +155,16 @@ class HOStateA(StateSpace):
     num_submission_attempts: int = 0
 
     def str_format(self):
-        return f"Time elapsed: {self.time_elapsed_in_minutes} minutes, Num submission attempts: {self.num_submission_attempts}"
-    
+        return f"State Space:\nTIME_ELAPSED: {self.time_elapsed_in_minutes} minutes, NUM_SUBMISSION_ATTEMPTS: {self.num_submission_attempts}"
+
     @staticmethod
     def describe() -> str:
         return HOStateA.describe_variables()
 
     @staticmethod
     def describe_variables() -> str:
-        return """
-        time_elapsed_in_minutes represents the number of minutes that have passed since the start of the session.
-        num_submission_attempts represents the number of times the user has attempted to submit their answer since the start of the session.
-        """
+        return """TIME_ELAPSED represents the number of minutes that have passed since the start of the session.
+NUM_SUBMISSION_ATTEMPTS represents the number of times the user has attempted to submit their answer since the start of the session."""
 
     @staticmethod
     def get_sweep() -> Dict[str, int]:
@@ -122,13 +187,11 @@ class HOStateB(StateSpace):
 
     @staticmethod
     def describe_variables():
-        return """
-        time_elapsed_in_minutes represents the number of minutes that have passed since the start of the session.
-        num_failed_submission_attempts represents the number of times the user has submitted an incorrect answer since the start of the session.
-        """
+        return """TIME_ELAPSED_IN_MINUTES represents the number of minutes that have passed since the start of the session.
+NUM_FAILED_SUBMISSION_ATTEMPTS represents the number of times the user has submitted an incorrect answer since the start of the session."""
 
     def str_format(self):
-        return f"Time elapsed: {self.time_elapsed_in_minutes} minutes, Num failed submission attempts: {self.num_failed_submission_attempts}"
+        return f"State Space:\nTIME_ELAPSED: {self.time_elapsed_in_minutes} minutes, NUM_FAILED_SUBMISSION_ATTEMPTS: {self.num_failed_submission_attempts}"
 
     @staticmethod
     def get_sweep() -> Dict[str, int]:
@@ -158,16 +221,14 @@ class HOActionSpaceA(ActionSpace):
 
     @staticmethod
     def describe() -> str:
-        return """
-        SUBMIT: The user submits their answer.
-        MEASURE: The user measures the distance between two points.
-        USE_CALCULATOR: The user uses the calculator.
-        ASK_FOR_HELP: The user asks for help.
-        ASK_FOR_HINT: The user asks for a hint.
-        ASK_FOR_EXPLANATION: The user asks for an explanation.
-        ASK_FOR_SOLUTION: The user asks for a solution.
-        EXIT: The user exits the session.
-        """
+        return """Action Space:\nSUBMIT: The user submits their answer.
+MEASURE: The user measures the distance between two points.
+USE_CALCULATOR: The user uses the calculator.
+ASK_FOR_HELP: The user asks for help.
+ASK_FOR_HINT: The user asks for a hint.
+ASK_FOR_EXPLANATION: The user asks for an explanation.
+ASK_FOR_SOLUTION: The user asks for a solution.
+EXIT: The user exits the session."""
 
 
 @dataclass
@@ -186,12 +247,10 @@ class HOActionSpaceB(ActionSpace):
 
     @staticmethod
     def describe() -> str:
-        return """
-        ATTEMPT_SUBMISSION: The user submits their answer.
-        MEASURE_DISTANCE: The user measures the distance between two points.
-        USE_CALCULATOR: The user uses the calculator.
-        ABANDON_SESSION: The user abandons the session.
-        """
+        return """Action Space:\nATTEMPT_SUBMISSION: The user submits their answer.
+MEASURE_DISTANCE: The user measures the distance between two points.
+USE_CALCULATOR: The user uses the calculator.
+ABANDON_SESSION: The user abandons the session."""
 
 
 @dataclass
@@ -210,13 +269,14 @@ client = OpenAI(
 )
 
 
-def gpt_call(prompt: str, temperature: int = 2, model: str = "gpt-4"):
+def gpt_call(prompt: str, temperature: int = 1.5, model: str = "gpt-3.5-turbo"):
     response = client.chat.completions.create(
         messages=[
+            {"role": "system", "content": SystemPrompt.describe()},
             {
                 "role": "user",
                 "content": prompt,
-            }
+            },
         ],
         model=model,
         temperature=temperature,
@@ -231,13 +291,15 @@ def assemble_prompt(
     action_space: Type[Enum],
 ) -> str:
     return (
-        persistence_model.value
+        PersistenceModel.describe_with_params(persistence_model_type=persistence_model)
         + "\n"
         + learner_characteristics.describe()
         + "\n"
         + state.str_format()
         + "\n"
         + action_space.describe()
+        + "\n"
+        + SimulatorInstruction.describe()
     )
 
 
@@ -251,8 +313,11 @@ def generate_next_action(
     prompt = assemble_prompt(
         persistence_model, learner_characteristics, state, action_space
     )
+    pprint(prompt)
     gpt_response = gpt_call(prompt)
-    if gpt_response in action_space:
+    pprint(gpt_response)
+    breakpoint()
+    if gpt_response in action_space.actions():
         return ActionSpace(gpt_response)
     else:
         raise ValueError("Invalid action generated by the model.")
@@ -262,8 +327,8 @@ def generate_input_combinations():
     from itertools import product
 
     persistence_models = [
-        PersistenceModelType.THEORETICAL,
-        PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
+        # PersistenceModelType.THEORETICAL,
+        # PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
         PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
     ]
     state_spaces = [HOStateA, HOStateB]
