@@ -1,21 +1,19 @@
+import json
 from typing import *
 from pprint import pprint
 from dataclasses import dataclass
 from enum import Enum
 from abc import ABC, abstractmethod
+from pathlib import Path
 import os
+import itertools
 
 from fire import Fire
 from openai import OpenAI
 from dotenv import load_dotenv
+import randomname
 
 load_dotenv(".env.secret")
-
-
-class PersistenceModelType(Enum):
-    THEORETICAL = "theory"
-    THEORY_PLUS_COMPUTATIONAL = "theory+comp"
-    THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS = "theory+comp+hyp"
 
 
 class PromptFragment(ABC):
@@ -31,17 +29,26 @@ class PromptFragment(ABC):
 
 
 class PersistenceModel(PromptFragment):
+
+    class PersistenceModelType(Enum):
+        THEORETICAL = "theory"
+        THEORY_PLUS_COMPUTATIONAL = "theory+comp"
+        THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS = "theory+comp+hyp"
+
     @staticmethod
     def describe_with_params(**kwargs) -> str:
         assert "persistence_model_type" in kwargs and isinstance(
-            kwargs["persistence_model_type"], PersistenceModelType
+            kwargs["persistence_model_type"], PersistenceModel.PersistenceModelType
         )
 
-        if kwargs["persistence_model_type"] == PersistenceModelType.THEORETICAL:
+        if (
+            kwargs["persistence_model_type"]
+            == PersistenceModel.PersistenceModelType.THEORETICAL
+        ):
             return "Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.'"
         elif (
             kwargs["persistence_model_type"]
-            == PersistenceModelType.THEORY_PLUS_COMPUTATIONAL
+            == PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL
         ):
             return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
             
@@ -52,7 +59,7 @@ Computationally, in the context of HoloOrbits, the sub-constructs in the theoret
 3. "despite the obstacles" -> ASK_FOR_HELP, ASK_FOR_HINT"""
         elif (
             kwargs["persistence_model_type"]
-            == PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS
+            == PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS
         ):
             return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
             
@@ -68,6 +75,12 @@ Concretely, act according to the following hypothesis:
 
 class SystemPrompt(PromptFragment):
 
+    @staticmethod
+    def describe() -> str:
+        raise NotImplementedError
+
+
+class DefaultSystemPrompt(SystemPrompt):
     @staticmethod
     def describe() -> str:
         return """You are a simulated learner agent working in a learning environment designed to test your understanding of Kepler's First Law. Given a scenario in the learning environment, you will generate the next action that a 13 year old human learner who possesses the given learner characteristics would most likely perform in the given situation. The stipulated class period for this activity is 40 minutes. The teacher has instructed you to work on the activity for the entire class period."""
@@ -119,17 +132,13 @@ class StateSpace(PromptFragment):
     def get_sweep() -> Dict[str, int]:
         raise NotImplementedError
 
+    @staticmethod
     @abstractmethod
-    def str_format(self) -> str:
+    def describe_state(self, state: Dict[Text, Any]) -> str:
         raise NotImplementedError
 
     @staticmethod
-    @abstractmethod
-    def describe_variables() -> str:
-        raise NotImplementedError
-
-    @staticmethod
-    def desribe():
+    def describe():
         return StateSpace.describe_variables()
 
 
@@ -148,26 +157,21 @@ class ActionSpace(PromptFragment):
 
 
 @dataclass
-class HOStateA(StateSpace):
+class HOStateSpaceA(StateSpace):
 
     state_space_name: str = "A"
-    time_elapsed_in_minutes: int = 0
-    num_submission_attempts: int = 0
 
-    def str_format(self):
-        return f"State Space:\nTIME_ELAPSED: {self.time_elapsed_in_minutes} minutes, NUM_SUBMISSION_ATTEMPTS: {self.num_submission_attempts}"
+    @staticmethod
+    def describe_state(self, state: Dict[Text, Any]):
+        return f"State Space:\nTIME_ELAPSED: {state['time_elapsed_in_minutes']} minutes, NUM_SUBMISSION_ATTEMPTS: {state['num_submission_attempts']}"
 
     @staticmethod
     def describe() -> str:
-        return HOStateA.describe_variables()
-
-    @staticmethod
-    def describe_variables() -> str:
         return """TIME_ELAPSED represents the number of minutes that have passed since the start of the session.
 NUM_SUBMISSION_ATTEMPTS represents the number of times the user has attempted to submit their answer since the start of the session."""
 
     @staticmethod
-    def get_sweep() -> Dict[str, int]:
+    def get_sweep() -> Dict[str, Any]:
         return {
             "time_elapsed_in_minutes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             "num_submission_attempts": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -175,7 +179,7 @@ NUM_SUBMISSION_ATTEMPTS represents the number of times the user has attempted to
 
 
 @dataclass
-class HOStateB(StateSpace):
+class HOStateSpaceB(StateSpace):
 
     state_space_name: str = "B"
     time_elapsed_in_minutes: int = 0
@@ -183,18 +187,15 @@ class HOStateB(StateSpace):
 
     @staticmethod
     def describe() -> str:
-        return HOStateB.describe_variables()
-
-    @staticmethod
-    def describe_variables():
         return """TIME_ELAPSED_IN_MINUTES represents the number of minutes that have passed since the start of the session.
 NUM_FAILED_SUBMISSION_ATTEMPTS represents the number of times the user has submitted an incorrect answer since the start of the session."""
 
-    def str_format(self):
+    @staticmethod
+    def describe_state(self):
         return f"State Space:\nTIME_ELAPSED: {self.time_elapsed_in_minutes} minutes, NUM_FAILED_SUBMISSION_ATTEMPTS: {self.num_failed_submission_attempts}"
 
     @staticmethod
-    def get_sweep() -> Dict[str, int]:
+    def get_sweep() -> Dict[str, Any]:
         return {
             "time_elapsed_in_minutes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             "num_failed_submission_attempts": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -255,21 +256,51 @@ ABANDON_SESSION: The user abandons the session."""
 
 @dataclass
 class GenerationSample:
-    prompt_version: str
-    persistence_model: PersistenceModelType
-    learner_characteristics: Learner
-    state: StateSpace
-    action_space: Type[Enum]
-    generated_action: ActionSpace
+    """Corresponds a single row in a dataset."""
+
+    experiment_id: Text
+    system_prompt: Type[SystemPrompt]
+    persistence_model_type: PersistenceModel.PersistenceModelType
+    learner: Learner
+    state_space: Type[StateSpace]
+    action_space: Type[ActionSpace]
+    state: Dict[Text, Any]
+
+    def assemble_prompt(self) -> str:
+        return (
+            PersistenceModel.describe_with_params(
+                persistence_model_type=self.persistence_model_type
+            )
+            + "\n"
+            + self.learner.describe()
+            + "\n"
+            + self.state_space.describe()
+            + "\n"
+            + self.state_space.describe_state(self.state)
+            + "\n"
+            + self.action_space.describe()
+            + "\n"
+            + SimulatorInstruction.describe()
+        )
+
+    def as_openai_request(self, model: str = "gpt-3.5-turbo"):
+        return {
+            "custom_id": self.experiment_id,
+            "method": "POST",
+            "url": "/v1/chat/completions",
+            "body": {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": self.system_prompt.describe()},
+                    {"role": "user", "content": self.assemble_prompt()},
+                ],
+            },
+        }
 
 
-client = OpenAI(
-    # This is the default and can be omitted
-    api_key=os.environ.get("OPENAI_API_KEY"),
-)
-
-
-def gpt_call(prompt: str, temperature: int = 1.5, model: str = "gpt-3.5-turbo"):
+def gpt_call(
+    client: OpenAI, prompt: str, temperature: int = 1.5, model: str = "gpt-3.5-turbo"
+):
     response = client.chat.completions.create(
         messages=[
             {"role": "system", "content": SystemPrompt.describe()},
@@ -284,27 +315,8 @@ def gpt_call(prompt: str, temperature: int = 1.5, model: str = "gpt-3.5-turbo"):
     return response.choices[0].message.content
 
 
-def assemble_prompt(
-    persistence_model: PersistenceModelType,
-    learner_characteristics: Learner,
-    state: StateSpace,
-    action_space: Type[Enum],
-) -> str:
-    return (
-        PersistenceModel.describe_with_params(persistence_model_type=persistence_model)
-        + "\n"
-        + learner_characteristics.describe()
-        + "\n"
-        + state.str_format()
-        + "\n"
-        + action_space.describe()
-        + "\n"
-        + SimulatorInstruction.describe()
-    )
-
-
 def generate_next_action(
-    persistence_model: PersistenceModelType,
+    persistence_model: PersistenceModel.PersistenceModelType,
     learner_characteristics: Learner,
     state: StateSpace,
     action_space: Type[Enum],
@@ -318,44 +330,70 @@ def generate_next_action(
     pprint(gpt_response)
     breakpoint()
     if gpt_response in action_space.actions():
-        return ActionSpace(gpt_response)
+        return gpt_response
     else:
         raise ValueError("Invalid action generated by the model.")
 
 
-def generate_input_combinations():
-    from itertools import product
-
-    persistence_models = [
-        # PersistenceModelType.THEORETICAL,
-        # PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
-        PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
+def generate_request_batch(
+    experiment_id: str,
+    persistence_model_types: List[PersistenceModel.PersistenceModelType],
+    learners: List[Learner],
+    state_spaces: List[StateSpace],
+    action_spaces: List[Type[Enum]],
+    model: str = "gpt-3.5-turbo",
+):
+    generation_samples = [
+        GenerationSample(
+            experiment_id=experiment_id,
+            persistence_model=pm,
+            learner=lc,
+            state=state,
+            action_space=acs,
+            generated_action=generate_next_action(pm, lc, ss, acs),
+        )
+        for pm, ss, acs, lc in itertools.product(
+            persistence_model_types, state_spaces, action_spaces, learners
+        )
+        for state in itertools.product(*ss.values())
     ]
-    state_spaces = [HOStateA, HOStateB]
-    action_spaces = [HOActionSpaceA, HOActionSpaceB]
-    learner_characteristics = [Learner]
-
-    for pm, sc, ac, lc in product(
-        persistence_models, state_spaces, action_spaces, learner_characteristics
-    ):
-        print(f"Generating samples for {pm}, {sc}, {ac}, {lc}")
-        state_space = sc.get_sweep()
-        for state in product(*state_space.values()):
-            print(f"Generating sample for state {state}")
-            yield GenerationSample(
-                prompt_version="v1",
-                persistence_model=pm,
-                learner_characteristics=lc,
-                state=sc(*state),
-                action_space=ac,
-                generated_action=generate_next_action(pm, lc, sc(*state), ac),
-            )
+    requests = [sample.as_openai_request() for sample in generation_samples]
+    return requests
 
 
 def run_simulations():
-    pass
+    experiment_id = randomname.get_name()
+    request_batch = generate_request_batch(
+        experiment_id=experiment_id,
+        persistence_model_types=[
+            PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS
+        ],
+        learners=[Learner(persistence_level=5, geometry_proficiency=5)],
+        state_spaces=[HOStateSpaceA, HOStateSpaceB],
+        action_spaces=[HOActionSpaceA, HOActionSpaceB],
+    )
+    # Save requests to JSONL file to a temporary file in openai_batch_requests/
+    with open(f"runs/requests/{experiment_id}.jsonl", "w") as f:
+        for request in request_batch:
+            f.write(json.dumps(request) + "\n")
+    # Call OpenAI batch prediction API
+    client.files.create(
+        file=open(f"openai_batch_requests/{experiment_id}.jsonl", "rb"), purpose="batch"
+    )
+    responses = client.batch.create(request_batch)
+    # Save responses to JSONL file
+    with open("responses.jsonl", "w") as f:
+        for response in responses:
+            f.write(json.dumps(response) + "\n")
 
 
 if __name__ == "__main__":
-    input_combo = next(generate_input_combinations())
+    # Create dir if not exists
+
+    client = OpenAI(
+        # This is the default and can be omitted
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+
+    input_combo = next(generate_request_batch())
     print(input_combo)
