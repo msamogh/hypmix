@@ -138,22 +138,10 @@ class StateActionPair:
             },
         }
 
-
-def generate_calibration_samples():
-    sweep_space = {
-        "persistence_level": [1, 2, 3, 4, 5],
-        "geometry_proficiency": [1, 2, 3, 4, 5],
-        "persistence_model": [
-            PersistenceModel.PersistenceModelType.THEORETICAL,
-            PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
-            PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
-        ],
-        "state": [HOStateA(time_elapsed_in_minutes=0, num_submission_attempts=0)],
-        "action_space": [HOActionSpaceA()],
-    }
+def generate_samples(split, sweep_space):
     return [
         StateActionPair(
-            dataset_split="calibration",
+            dataset_split=split,
             learner=Learner(
                 persistence_level=pl,
                 geometry_proficiency=gp,
@@ -165,15 +153,34 @@ def generate_calibration_samples():
         for pl, gp, pm, state, acs in itertools.product(*sweep_space.values())
     ]
 
+SWEEP_SPACE_FOR_CALIBRATION_SPLIT = {
+    "persistence_level": [1, 2, 3, 4, 5],
+    "geometry_proficiency": [1, 2, 3, 4, 5],
+    "persistence_model": [
+        PersistenceModel.PersistenceModelType.THEORETICAL,
+        PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
+        PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
+    ],
+    "state": [HOStateA(time_elapsed_in_minutes=0, num_submission_attempts=0)],
+    "action_space": [HOActionSpaceA()],
+}
 
-def generate_evaluation_samples():
-    raise NotImplementedError
-
+SWEEP_SPACE_FOR_EVALUATION_SPLIT = {
+    "persistence_level": [1, 2, 3, 4, 5],
+    "geometry_proficiency": [1, 2, 3, 4, 5],
+    "persistence_model": [
+        PersistenceModel.PersistenceModelType.THEORETICAL,
+        PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
+        PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
+    ],
+    "state": [HOStateA(time_elapsed_in_minutes=0, num_submission_attempts=0)],
+    "action_space": [HOActionSpaceA()],
+}
 
 if __name__ == "__main__":
     client = Client()
     dataset = client.create_dataset("persistsim-sweep-2")
-    for sample in generate_calibration_samples():
+    for sample in generate_samples("calibration", SWEEP_SPACE_FOR_CALIBRATION_SPLIT):
         langsmith_sample = sample.as_langsmith_sample
         client.create_example(
             inputs=langsmith_sample["inputs"],
