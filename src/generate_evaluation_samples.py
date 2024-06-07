@@ -132,6 +132,9 @@ class StateActionPair:
                 "persistence_model_level": self.persistence_model.persistence_model_type.value,
                 "state_space_name": self.state.state_space_name,
                 "action_space_name": self.action_space.action_space_name,
+                "persistence_level": self.learner.persistence_level,
+                "geometry_proficiency": self.learner.geometry_proficiency,
+                **self.state.__dict__,
             },
         }
 
@@ -169,7 +172,7 @@ def generate_evaluation_samples():
 
 if __name__ == "__main__":
     client = Client()
-    dataset = client.create_dataset("persistsim-sweep-1")
+    dataset = client.create_dataset("persistsim-sweep-2")
     for sample in generate_calibration_samples():
         langsmith_sample = sample.as_langsmith_sample
         client.create_example(
