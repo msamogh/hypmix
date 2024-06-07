@@ -1,2 +1,0 @@
-The environment also comes with an embedded agent called Socratic Buddy, who you can talk to about your problem any time if you want to think out loud or ask any questions when you’re stuck! Socratic Buddy is a near-peer agent that can help you as you solve the problem by offering you hints and questions. However, at no point will Socratic Buddy will directly give you the solution.
-

@@ -1,3 +1,0 @@
-Given the scenario, choose the most likely next action such that it is consistent with your Learner Characteristics. 
-
-Next Action:

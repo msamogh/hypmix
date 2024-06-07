@@ -1,3 +1,0 @@
-- Learning Task
-Your goal in the learning task is to show that the motion of the orbiting planet in the planetary systems is in accordance with Kepler's First Law.
-

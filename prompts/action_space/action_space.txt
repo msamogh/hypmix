@@ -1,5 +1,0 @@
-- You can take the following actions:
-WORK: Work in the learning environment by measuring distances and performing calculations.
-SUBMIT-SOLUTION: Submit your proposed solution. If your solution is correct, the session will end automatically without you having to EXIT. Otherwise, it will be counted as one submission attempt and continue the session.
-GIVE-UP: Give up and quit without completing the task.
-UNLIKELY: Given the learner characteristics, it is unlikely that the learner will end up in this situation to begin with.

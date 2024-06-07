@@ -1,3 +1,0 @@
-- Scenario
-It has been {time_elapsed} since you began the task.
-You have attempted to submit the solution {num_submission_attempts} time(s).
