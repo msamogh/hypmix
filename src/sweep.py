@@ -193,13 +193,13 @@ class Sweep:
                 metadata=langsmith_sample["metadata"],
                 dataset_id=dataset.id,
             )
-
+   
     def run(self, create_dataset: bool = False):
         """Create, predict over, and log the next action distribution for the evaluation dataset."""
         if create_dataset:
             self._create_evaluation_dataset()
         experiment_name = self._predict_over_dataset(
             self.dataset_name,
-            {"split": self.dataset_split, "num_submission_attempts": 0},
+            {"split": self.dataset_split},
         ).experiment_name
         self._log_next_action_distribution(experiment_name, self.action_space)
