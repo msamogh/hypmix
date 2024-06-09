@@ -2,3 +2,5 @@
 *.code-workspace
 .env.secret
 prompts_old/
+*.pyc
+results/*.csv
