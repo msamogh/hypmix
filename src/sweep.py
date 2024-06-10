@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import pandas as pd
 
 load_dotenv(".env.secret")
+load_dotenv(".env")
 
 from action_spaces import ActionSpace, HOActionSpaceA
 from state_spaces import State, HOStateA
