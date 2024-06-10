@@ -4,7 +4,6 @@ from action_spaces import HOActionSpaceA
 from state_spaces import HOStateA
 from learners import PersistenceModel
 from sweep import Sweep
-
 from plot import replot_figures
 
 
