@@ -7,6 +7,8 @@
 pip install -r requirements.txt
 ```
 
-## Set up API tokens
+## Set up API access tokens
 1. In `.env`, change `LANGCHAIN_PROJECT` to the ID of the LangSmith project you are using in your account.
-2. Create a new file named `.env.secret` next to `.env`
+2. Rename `.env.secret.template` to `.env.secret`. Fill in the values for each of the API keys from the respective providers.
+
+
