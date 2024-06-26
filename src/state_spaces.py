@@ -6,6 +6,14 @@ from dataclasses import dataclass, field
 class State:
     state_space_name: str
 
+    @property
+    def state_variables(self) -> Dict[str, Any]:
+        dict_vars = self.__dict__.copy()
+        # Delete "state_space_name" key if it exists
+        if "state_space_name" in dict_vars:
+            dict_vars.pop("state_space_name")
+        return dict_vars
+
     def describe_state(self) -> str:
         raise NotImplementedError
 
@@ -19,3 +27,23 @@ class HOStateA(State):
 
     def describe_state(self) -> str:
         return f"""State:\nTIME_ELAPSED (the number of minutes that have passed since the start of the session): {self.time_elapsed_in_minutes} minutes\nNUM_SUBMISSION_ATTEMPTS (the number of times the user has submitted an answer since the start of the session): {self.num_submission_attempts}"""
+
+
+@dataclass
+class HOStateB(State):
+
+    state_space_name: str = "HOStateSpaceB"
+    num_submission_attempts: int = 0
+    AP: int = 0
+    AF1: int = 0
+    AF2: int = 0
+    AO: int = 0
+    F1P: int = 0
+    F1F2: int = 0
+    F1O: int = 0
+    F2P: int = 0
+    F2O: int = 0
+    OP: int = 0
+
+    def describe_state(self) -> str:
+        return f"""State:\nNUM_SUBMISSION_ATTEMPTS (the number of times the user has submitted an answer since the start of the session): {self.num_submission_attempts}\nAP: {self.AP}\nAF1: {self.AF1}\nAF2: {self.AF2}\nAO: {self.AO}\nF1P: {self.F1P}\nF1F2: {self.F1F2}\nF1O: {self.F1O}\nF2P: {self.F2P}\nF2O: {self.F2O}\nOP: {self.OP}"""

@@ -7,10 +7,11 @@ import os
 
 random.seed(22)
 
-from langsmith import Client
+from langsmith import Client, traceable
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain import hub
+from langsmith.wrappers import wrap_openai
 from langsmith.evaluation import evaluate, evaluate_existing
 from langsmith.schemas import Example, Run
 from dotenv import load_dotenv
@@ -21,37 +22,40 @@ load_dotenv(".env")
 
 from action_spaces import ActionSpace, HOActionSpaceA
 from state_spaces import State, HOStateA
-from learners import Learner, PersistenceModel
+from learners import Learner, LearnerCharacteristicModel, ModelType, create_geometry_proficiency_model, create_persistence_model
 
 
 @dataclass
-class StateActionPair:
-    """Corresponds a single row in a dataset."""
+class Vignette:
+    """Corresponds a single row in a dataset (akin to a vignette used in psychological research)."""
 
-    dataset_split: Text  # "calibration" or "evaluation"
+    dataset_split: Text  # "validation" or "test"
     learner: Learner
-    persistence_model: PersistenceModel
+    model_type: ModelType
     state: State
     action_space: ActionSpace
 
     @property
     def as_langsmith_sample(self):
         return {
+            # For the prompt template
             "inputs": {
                 "persistence_level": self.learner.persistence_level,
-                "geometry_proficiency": self.learner.geometry_proficiency,
+                "geometry_proficiency_level": self.learner.geometry_proficiency_level,
+                "persistence_model": self.learner.persistence_model.describe(),
+                "geometry_proficiency_model": self.learner.geometry_proficiency_model.describe(),
                 "state": self.state.describe_state(),
                 "action_space": self.action_space.describe_action_space(),
-                "persistence_definition": self.persistence_model.describe(),
             },
             "outputs": {},
+            # For filtering
             "metadata": {
                 "split": self.dataset_split,
-                "persistence_model_level": self.persistence_model.persistence_model_type.value,
+                "model_type": self.model_type,
                 "state_space_name": self.state.state_space_name,
                 "action_space_name": self.action_space.action_space_name,
                 "persistence_level": self.learner.persistence_level,
-                "geometry_proficiency": self.learner.geometry_proficiency,
+                "geometry_proficiency_level": self.learner.geometry_proficiency_level,
                 **self.state.__dict__,
             },
         }
@@ -66,10 +70,12 @@ class Sweep:
     temperature: float
     prompt_name: Text
 
-    persistence_level: List[int]
-    geometry_proficiency: List[int]
-    persistence_model: List[PersistenceModel.PersistenceModelType]
-    state: List[State]
+    persistence_levels: List[int]
+    geometry_proficiency_levels: List[int]
+
+    model_type: ModelType
+
+    states: List[State]
     action_space: ActionSpace
 
     def __post_init__(self):
@@ -87,11 +93,11 @@ class Sweep:
     def sweep_dict(self):
         """Used to populate the metadata of the LangSmith dataset."""
         return {
-            "persistence_level": self.persistence_level,
-            "geometry_proficiency": self.geometry_proficiency,
-            "persistence_model": self.persistence_model,
-            "state": self.state,
-            "action_space": self.action_space,
+            "persistence_levels": self.persistence_levels,
+            "geometry_proficiency_levels": self.geometry_proficiency_levels,
+            "model_types": [self.model_type],
+            "states": self.states,
+            "action_spaces": [self.action_space],
         }
 
     def _predict_over_dataset(
@@ -124,8 +130,12 @@ class Sweep:
         ) -> dict:
             """Calculate the percentage of a particular action in the list of runs."""
             action_count = 0
+            print(f"Num runs: {len(runs)}")
             for i, run in enumerate(runs):
+                if run.outputs is None:
+                    continue
                 if run.outputs["output"] == action_label:
+                    print(run.outputs["output"])
                     action_count += 1
             return {
                 "key": f"{action_label.lower()}_percentage",
@@ -140,7 +150,7 @@ class Sweep:
             ],
         )
         return {
-            result.key: result.score for result in results._summary_results["results"]
+            f"action_{result.key}": result.score for result in results._summary_results["results"]
         }
 
     def _log_next_action_distribution(
@@ -148,43 +158,69 @@ class Sweep:
     ):
         """Log the distribution of the next action in the existing experiment to a CSV."""
 
-        next_action_distribution = {
-            "experiment_id": existing_experiment_id,
-            **self._get_next_action_distribution(existing_experiment_id, action_space),
-        }
-        # Read the list of distributions from a CSV onto a Pandas DataFrame, insert the new distribution, and write back to the CSV
-        if os.path.exists("results/action_distribution.csv"):
-            try:
-                existing = pd.read_csv("results/action_distribution.csv")
-                existing = pd.concat(
-                    [existing, pd.DataFrame([next_action_distribution])]
-                )
-                existing.to_csv("results/action_distribution.csv", index=False)
-            except Exception as e:
-                print(f"Exception: {e}")
-                df = pd.DataFrame([next_action_distribution])
+        log_rows = [
+            {
+                "experiment_id": existing_experiment_id,
+                "action_space": action_space.action_space_name,
+                "split": self.dataset_split,
+                "persistence_level": persistence_level,
+                "geometry_proficiency_level": geometry_proficiency_level,
+                "model_type": model_type,
+                "model": self.model_name,
+                **{
+                    f"state_{key.lower()}": value
+                    for key, value in state.state_variables.items()
+                },
+                **self._get_next_action_distribution(
+                    existing_experiment_id, action_space
+                ),
+            }
+            for persistence_level, geometry_proficiency_level, model_type, state, action_space in itertools.product(
+                *self.sweep_dict.values()
+            )
+        ]
+        print(f"No. of log rows: {len(log_rows)}")
+        for row_idx, log_row in enumerate(log_rows):
+            print(f"Logging row {row_idx + 1}/{len(log_rows)}")
+            # Read the list of distributions from a CSV onto a Pandas DataFrame, insert the new distribution, and write back to the CSV
+            if os.path.exists("results/action_distribution.csv"):
+                try:
+                    existing = pd.read_csv("results/action_distribution.csv")
+                    existing = pd.concat([existing, pd.DataFrame([log_row])])
+                    existing.to_csv("results/action_distribution.csv", index=False)
+                except Exception as e:
+                    print(f"Exception: {e}")
+                    df = pd.DataFrame([log_row])
+                    df.to_csv("results/action_distribution.csv", index=False)
+            else:
+                df = pd.DataFrame([log_row])
                 df.to_csv("results/action_distribution.csv", index=False)
-        else:
-            df = pd.DataFrame([next_action_distribution])
-            df.to_csv("results/action_distribution.csv", index=False)
-        print("Logged next action distribution to results/action_distribution.csv")
+            print("Logged next action distribution to results/action_distribution.csv")
 
     def _create_evaluation_dataset(self):
         """Create a LangSmith dataset with all possible combinations of the sweep parameters."""
         client = Client()
-        dataset = client.create_dataset(self.dataset_name)
+        try:
+            dataset = client.create_dataset(self.dataset_name)
+        except Exception as e:
+            print(f"Exception: {e}")
+            dataset = client.read_dataset(dataset_name=self.dataset_name)
         samples = [
-            StateActionPair(
+            Vignette(
                 dataset_split=self.dataset_split,
                 learner=Learner(
-                    persistence_level=pl,
-                    geometry_proficiency=gp,
+                    persistence_level=persistence_level,
+                    geometry_proficiency_level=geometry_proficiency_level,
+                    persistence_model=create_persistence_model(model_type),
+                    geometry_proficiency_model=create_geometry_proficiency_model(model_type)
                 ),
-                persistence_model=PersistenceModel(pm),
+                model_type=model_type,
                 state=state,
-                action_space=acs,
+                action_space=action_space,
             )
-            for pl, gp, pm, state, acs in itertools.product(*self.sweep_dict.values())
+            for persistence_level, geometry_proficiency_level, model_type, state, action_space in itertools.product(
+                *self.sweep_dict.values()
+            )
         ]
         for sample in samples:
             langsmith_sample = sample.as_langsmith_sample
@@ -194,7 +230,7 @@ class Sweep:
                 metadata=langsmith_sample["metadata"],
                 dataset_id=dataset.id,
             )
-   
+
     def run(self, create_dataset: bool = False):
         """Create, predict over, and log the next action distribution for the evaluation dataset."""
         if create_dataset:
@@ -202,5 +238,6 @@ class Sweep:
         experiment_name = self._predict_over_dataset(
             self.dataset_name,
             {"split": self.dataset_split},
+            experiment_prefix="experiment-",
         ).experiment_name
         self._log_next_action_distribution(experiment_name, self.action_space)

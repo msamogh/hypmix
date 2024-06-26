@@ -1,27 +1,27 @@
 from typing import *
 
 from action_spaces import HOActionSpaceA
-from state_spaces import HOStateA
-from learners import PersistenceModel
+from state_spaces import HOStateA, HOStateB
+from learners import ModelType
 from sweep import Sweep
 from plot import replot_figures
 
 
 if __name__ == "__main__":
     Sweep(
-        model_name="gpt-3.5-turbo",
-        temperature=0.7,
-        prompt_name="msamogh/persistsim-trial",
-        dataset_name="persistsim-sweep-2",
-        dataset_split="calibration",
-        persistence_level=[1, 2, 3],
-        geometry_proficiency=[3],
-        persistence_model=[
-            PersistenceModel.PersistenceModelType.THEORETICAL,
-            PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL,
-            PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS,
+        model_name="gpt-4",
+        temperature=0.9,
+        prompt_name="msamogh/sl-2",
+        dataset_name="persistsim-sweep-15",
+        dataset_split="valid",
+        persistence_levels=[1, 5, 10],
+        geometry_proficiency_levels=[3],
+        model_type=[
+            # ModelType.THEORETICAL,
+            # ModelType.THEORY_PLUS_COMPUTATIONAL,
+            ModelType.THEOR_COMP_BEHAV,
         ],
-        state=[HOStateA(time_elapsed_in_minutes=5, num_submission_attempts=0)],
-        action_space=[HOActionSpaceA()],
-    ).run()
+        states=[HOStateB()],
+        action_space=HOActionSpaceA(),
+    ).run(create_dataset=True)
     replot_figures()

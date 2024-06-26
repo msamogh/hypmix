@@ -1,52 +1,105 @@
-from typing import *
-from dataclasses import dataclass, field
 from enum import Enum
+from dataclasses import dataclass
+
+
+class ModelType(Enum):
+    THEOR = "theor"
+    THEOR_COMP = "theor+comp"
+    THEOR_COMP_BEHAV = "theor+comp+behav"
 
 
 @dataclass
-class PersistenceModel:
+class TheoreticalModel:
+    description: str
 
-    class PersistenceModelType(Enum):
-        THEORETICAL = "theory"
-        THEORY_PLUS_COMPUTATIONAL = "theory+comp"
-        THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS = "theory+comp+hyp"
+    def __str__(self):
+        return self.description
 
-    persistence_model_type: PersistenceModelType
+
+@dataclass
+class ComputationalModel:
+    mappings: dict
+
+    def __str__(self):
+        return "\n".join(
+            f"{idx + 1}. '{key}' -> {value}"
+            for idx, (key, value) in enumerate(self.mappings.items())
+        )
+
+
+@dataclass
+class BehavioralModel:
+    hypothesis: str
+
+    def __str__(self):
+        return f"Behavioral hypothesis: {self.hypothesis}"
+
+
+@dataclass
+class LearnerCharacteristicModel:
+    """Data class for modeling learner characteristics."""
+
+    model_type: ModelType
+    theoretical_model: TheoreticalModel
+    computational_model: ComputationalModel
+    behavioral_model: BehavioralModel
 
     def describe(self) -> str:
-        if (
-            self.persistence_model_type
-            == PersistenceModel.PersistenceModelType.THEORETICAL
-        ):
-            return "Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.'"
-        elif (
-            self.persistence_model_type
-            == PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL
-        ):
-            return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
-            
-Computationally, in the context of HoloOrbits, the sub-constructs in the theoretical definition of 'persistence' is mapped to the following specific learner actions in the learning environment.
-            
-1. "keeping at a task" -> MEASURE, USE_CALCULATOR
-2. "finishing it" -> SUBMIT
-3. "despite the obstacles" -> ASK_FOR_HELP, ASK_FOR_HINT"""
-        elif (
-            self.persistence_model_type
-            == PersistenceModel.PersistenceModelType.THEORY_PLUS_COMPUTATIONAL_PLUS_HYPOTHESIS
-        ):
-            return """Theoretically, 'persistence' is defined as 'Keeping at a task and finishing it despite the obstacles (such as opposition or discouragement) or the effort involved.
-            
-Computationally, in the context of HoloOrbits, the sub-constructs in the theoretical definition of 'persistence' is mapped to the following specific learner actions in the learning environment.
+        """Formats the model descriptions based on its type."""
+        descriptions = [str(self.theoretical_model)]
+        if self.model_type in [ModelType.THEOR_COMP, ModelType.THEOR_COMP_BEHAV]:
+            descriptions.append(str(self.computational_model))
+        if self.model_type == ModelType.THEOR_COMP_BEHAV:
+            descriptions.append(str(self.behavioral_model))
+        return "\n\n".join(descriptions)
 
-1. "keeping at a task" -> MEASURE, USE_CALCULATOR
-2. "finishing it" -> SUBMIT
-3. "despite the obstacles" -> ASK_FOR_HELP, ASK_FOR_HINT
 
-Concretely, act according to the following hypothesis:
-1. For any given value of TIME_ELAPSED in the state, learners with higher persistence levels are less likely to abandon the session compared to learners with lower persistence levels."""
+# Define configurations for specific characteristics
+def create_geometry_proficiency_model(
+    model_type: ModelType,
+) -> LearnerCharacteristicModel:
+    theoretical_description = "The ability to apply the knowledge of the properties of common shapes to solve problems."
+    computational_mappings = {
+        "apply the knowledge of properties of common shapes": "MEASURE, USE_CALCULATOR",
+        "to solve problems": "SUBMIT",
+    }
+    behavioral_hypothesis = "Higher geometry proficiency correlates with a greater likelihood of task completion within the time elapsed."
+    return LearnerCharacteristicModel(
+        model_type,
+        TheoreticalModel(theoretical_description),
+        ComputationalModel(computational_mappings),
+        BehavioralModel(behavioral_hypothesis),
+    )
+
+
+def create_persistence_model(model_type: ModelType) -> LearnerCharacteristicModel:
+    theoretical_description = "'Persistence' is defined as 'Keeping at a task and finishing it despite the obstacles or the effort involved.'"
+    computational_mappings = {
+        "keeping at a task": "MEASURE, USE_CALCULATOR",
+        "finishing it": "SUBMIT",
+        "despite the obstacles": "ASK_FOR_HELP, ASK_FOR_HINT",
+    }
+    behavioral_hypothesis = "Higher persistence levels correlate with fewer session abandonments, despite the time elapsed or failures."
+    return LearnerCharacteristicModel(
+        model_type,
+        TheoreticalModel(theoretical_description),
+        ComputationalModel(computational_mappings),
+        BehavioralModel(behavioral_hypothesis),
+    )
 
 
 @dataclass
 class Learner:
+    """Data class for a learner."""
+
     persistence_level: int
-    geometry_proficiency: int
+    geometry_proficiency_level: int
+    persistence_model: LearnerCharacteristicModel
+    geometry_proficiency_model: LearnerCharacteristicModel
+
+
+# if __name__ == "__main__":
+#     geom_model = create_geometry_proficiency_model(ModelType.BEHAVIORAL)
+#     persistence_model = create_persistence_model(ModelType.BEHAVIORAL)
+#     print(geom_model.describe())
+#     print(persistence_model.describe())

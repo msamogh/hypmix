@@ -18,23 +18,35 @@ def replot_figures():
     df.columns = [col.replace("_percentage", "").upper() for col in df.columns]
 
     # Add new column called 'prefix' that contains the initial substring of the experiment_id until the last hyphen
-    df["PREFIX"] = df["EXPERIMENT_ID"].str.split("-").str[:-1].str.join("-")
+    df["PREFIX"] = df["EXPERIMENT_ID"].str.split("-").str[-1].str.join("-")
 
     # Add an extra "UNPREDICTED" column containing the remaining percentages
-    df["UNPREDICTED"] = 1.0 - df.drop(columns=["EXPERIMENT_ID", "PREFIX"]).sum(axis=1)
+    # Subtract only those columns starting with "ACTION_"
+    df["UNPREDICTED"] = 1.0 - df.filter(like="ACTION_").drop(
+        columns=["ACTION_SPACE"]
+    ).sum(axis=1)
 
-    df = df.drop(columns=["EXPERIMENT_ID"])
+    # Drop "ACTION_SPACE"
+    df = df.drop(columns=["ACTION_SPACE"])
+
+    # Only retain "PREFIX" and columns starting with "ACTION_"
+    df = df[
+        ["PREFIX", "SPLIT"]
+        + df.filter(like="ACTION_").columns.tolist()
+        + ["UNPREDICTED"]
+    ]
+
+    # Remove '-'s from "PREFIX"
+    df["PREFIX"] = df["PREFIX"].str.replace("-", "")
 
     # Group by experiment_id and sum the percentages for each action
-    grouped_df = df.groupby("PREFIX").mean()
+    grouped_df = df.groupby(["PREFIX", "SPLIT"]).mean()
 
     # Save the plot to figures/<experiment_id>.png
-    for experiment_id in grouped_df.index:
+    for index in grouped_df.index:
+        experiment_id, split = index
         fig, ax = plt.subplots(figsize=(12, 8))
-        grouped_df[grouped_df.index == experiment_id].T.plot(
-            kind="bar", ax=ax, legend=False
-        )
-        # grouped_df[].T.plot(kind='bar', ax=ax, legend=False)
+        grouped_df[grouped_df.index == index].T.plot(kind="bar", ax=ax, legend=False)
         ax.set_title(
             "Distribution of the Next Action in the Experiment Grouped by Experiment"
         )
@@ -44,7 +56,7 @@ def replot_figures():
         plt.tight_layout()
 
         # Save the figure
-        output_path = f"figures/{experiment_id}.png"
+        output_path = f"figures/{experiment_id}_{split}.png"
         fig.savefig(output_path)
 
 
