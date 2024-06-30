@@ -10,6 +10,7 @@ random.seed(22)
 from langsmith import Client, traceable
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage
 from langchain import hub
 from langsmith.wrappers import wrap_openai
 from langsmith.evaluation import evaluate, evaluate_existing
@@ -22,7 +23,13 @@ load_dotenv(".env")
 
 from action_spaces import ActionSpace, HOActionSpaceA
 from state_spaces import State, HOStateA
-from learners import Learner, LearnerCharacteristicModel, ModelType, create_geometry_proficiency_model, create_persistence_model
+from learners import (
+    Learner,
+    LearnerCharacteristicModel,
+    ModelType,
+    create_geometry_proficiency_model,
+    create_persistence_model,
+)
 
 
 @dataclass
@@ -73,7 +80,7 @@ class Sweep:
     persistence_levels: List[int]
     geometry_proficiency_levels: List[int]
 
-    model_type: ModelType
+    model_types: ModelType
 
     states: List[State]
     action_space: ActionSpace
@@ -95,7 +102,7 @@ class Sweep:
         return {
             "persistence_levels": self.persistence_levels,
             "geometry_proficiency_levels": self.geometry_proficiency_levels,
-            "model_types": [self.model_type],
+            "model_types": self.model_types,
             "states": self.states,
             "action_spaces": [self.action_space],
         }
@@ -108,8 +115,19 @@ class Sweep:
         experiment_prefix: Text = None,
     ):
         """Predict over the dataset and log the results."""
+
+        def extract_action_label(action_space: ActionSpace, message: AIMessage) -> Text:
+            for action in action_space.actions.keys():
+                if action in message.content:
+                    return action
+            return "UNPREDICTED"
+
         # Run evaluation for the first time
-        chain = self.prompt | self.chat_model | self.output_parser
+        chain = (
+            self.prompt
+            | self.chat_model
+            | partial(extract_action_label, self.action_space)
+        )
         results = evaluate(
             chain.invoke,
             data=self.client.list_examples(
@@ -150,7 +168,8 @@ class Sweep:
             ],
         )
         return {
-            f"action_{result.key}": result.score for result in results._summary_results["results"]
+            f"action_{result.key}": result.score
+            for result in results._summary_results["results"]
         }
 
     def _log_next_action_distribution(
@@ -165,7 +184,7 @@ class Sweep:
                 "split": self.dataset_split,
                 "persistence_level": persistence_level,
                 "geometry_proficiency_level": geometry_proficiency_level,
-                "model_type": model_type,
+                "model_type": model_type.value,
                 "model": self.model_name,
                 **{
                     f"state_{key.lower()}": value
@@ -183,19 +202,19 @@ class Sweep:
         for row_idx, log_row in enumerate(log_rows):
             print(f"Logging row {row_idx + 1}/{len(log_rows)}")
             # Read the list of distributions from a CSV onto a Pandas DataFrame, insert the new distribution, and write back to the CSV
-            if os.path.exists("results/action_distribution.csv"):
+            if os.path.exists(f"results/{self.dataset_name}.csv"):
                 try:
-                    existing = pd.read_csv("results/action_distribution.csv")
+                    existing = pd.read_csv(f"results/{self.dataset_name}.csv")
                     existing = pd.concat([existing, pd.DataFrame([log_row])])
                     existing.to_csv("results/action_distribution.csv", index=False)
                 except Exception as e:
                     print(f"Exception: {e}")
                     df = pd.DataFrame([log_row])
-                    df.to_csv("results/action_distribution.csv", index=False)
+                    df.to_csv(f"results/{self.dataset_name}.csv", index=False)
             else:
                 df = pd.DataFrame([log_row])
-                df.to_csv("results/action_distribution.csv", index=False)
-            print("Logged next action distribution to results/action_distribution.csv")
+                df.to_csv(f"results/{self.dataset_name}.csv", index=False)
+            print(f"Logged next action distribution to results/{self.dataset_name}.csv")
 
     def _create_evaluation_dataset(self):
         """Create a LangSmith dataset with all possible combinations of the sweep parameters."""
@@ -212,7 +231,9 @@ class Sweep:
                     persistence_level=persistence_level,
                     geometry_proficiency_level=geometry_proficiency_level,
                     persistence_model=create_persistence_model(model_type),
-                    geometry_proficiency_model=create_geometry_proficiency_model(model_type)
+                    geometry_proficiency_model=create_geometry_proficiency_model(
+                        model_type
+                    ),
                 ),
                 model_type=model_type,
                 state=state,
@@ -231,7 +252,7 @@ class Sweep:
                 dataset_id=dataset.id,
             )
 
-    def run(self, create_dataset: bool = False):
+    def run(self, create_dataset: bool = False, num_generations_per_sample: int = 1):
         """Create, predict over, and log the next action distribution for the evaluation dataset."""
         if create_dataset:
             self._create_evaluation_dataset()
@@ -239,5 +260,6 @@ class Sweep:
             self.dataset_name,
             {"split": self.dataset_split},
             experiment_prefix="experiment-",
+            num_generations_per_sample=num_generations_per_sample,
         ).experiment_name
         self._log_next_action_distribution(experiment_name, self.action_space)
