@@ -1,5 +1,11 @@
 from typing import *
 from dataclasses import dataclass, field
+import random
+import numpy as np
+
+random.seed(42)
+np.random.seed(42)
+rng = np.random.default_rng()
 
 
 @dataclass
@@ -57,10 +63,6 @@ F1O: {self.F1O} (whether the user has measured the distance between Focus 1 and 
 F2P: {self.F2P} (whether the user has measured the distance between Focus 2 and Perihelion)
 F2O: {self.F2O} (whether the user has measured the distance between Focus 2 and the ith point on the orbit)
 OP: {self.OP} (whether the user has measured the distance between the ith point on the orbit and Perihelion)"""
-    
-    @staticmethod
-    def NO_MEASUREMENTS() -> "HOStateB":
-        return HOStateB.generate_state(0, {})
 
     @staticmethod
     def generate_state(
@@ -79,3 +81,61 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
             F2O=action_mask.get("F2O", 0),
             OP=action_mask.get("OP", 0),
         )
+
+    @staticmethod
+    def generate_state_from_vector(state: np.ndarray) -> "HOStateB":
+        return HOStateB(
+            num_submission_attempts=state[0],
+            AP=state[1],
+            AF1=state[2],
+            AF2=state[3],
+            AO=state[4],
+            F1P=state[5],
+            F1F2=state[6],
+            F1O=state[7],
+            F2P=state[8],
+            F2O=state[9],
+            OP=state[10],
+        )
+
+    @staticmethod
+    def generate_states(num_state_vars=10, std_dev=1):
+        result_array = None
+        # Sample the sum S from a normal distribution
+        for mean in range(0, 11):
+            S = int(np.random.normal(mean, std_dev))
+            S = max(
+                0, min(S, num_state_vars)
+            )  # Ensure S is within the valid range [0, n]
+
+            # Calculate the probability p
+            p = S / num_state_vars
+
+            # Generate binary variables
+            if result_array is None:
+                result_array = np.hstack(
+                    (
+                        np.tile([mean], (10, 1)),
+                        np.random.binomial(1, p, (10, num_state_vars)),
+                    )
+                )
+            else:
+                result_array = np.vstack(
+                    (
+                        result_array,
+                        np.hstack(
+                            (
+                                np.tile([mean], (10, 1)),
+                                np.random.binomial(1, p, (10, num_state_vars)),
+                            )
+                        ),
+                    )
+                )
+        # Apply generate_state_from_vector to each row of the result_array
+        return [HOStateB.generate_state_from_vector(state) for state in result_array]
+
+
+if __name__ == "__main__":
+    states = HOStateB.generate_states()
+    for state in states:
+        print(state.describe_state())

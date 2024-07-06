@@ -21,7 +21,7 @@ import pandas as pd
 load_dotenv(".env.secret")
 load_dotenv(".env")
 
-from action_spaces import ActionSpace, HOActionSpaceA
+from action_spaces import ActionSpace, HOActionSpaceB
 from state_spaces import State, HOStateA
 from learners import (
     Learner,
@@ -36,6 +36,7 @@ from learners import (
 class Vignette:
     """Corresponds a single row in a dataset (akin to a vignette used in psychological research)."""
 
+    sweep_id: Text
     dataset_split: Text  # "validation" or "test"
     learner: Learner
     model_type: ModelType
@@ -57,6 +58,7 @@ class Vignette:
             "outputs": {},
             # For filtering
             "metadata": {
+                "sweep_id": self.sweep_id,
                 "split": self.dataset_split,
                 "model_type": self.model_type,
                 "state_space_name": self.state.state_space_name,
@@ -70,6 +72,8 @@ class Vignette:
 
 @dataclass
 class Sweep:
+    sweep_id: Text
+
     dataset_name: Text
     dataset_split: Text
 
@@ -116,9 +120,14 @@ class Sweep:
     ):
         """Predict over the dataset and log the results."""
 
-        def extract_action_label(action_space: ActionSpace, message: AIMessage) -> Text:
+        def extract_action_label(
+            action_space: "ActionSpace", message: "AIMessage"
+        ) -> Text:
             for action in action_space.actions.keys():
-                if action in message.content:
+                base_action = action.split("(")[
+                    0
+                ]  # Get the base action before any parameters
+                if base_action in message.content:
                     return action
             return "UNPREDICTED"
 
@@ -148,7 +157,6 @@ class Sweep:
         ) -> dict:
             """Calculate the percentage of a particular action in the list of runs."""
             action_count = 0
-            print(f"Num runs: {len(runs)}")
             for i, run in enumerate(runs):
                 if run.outputs is None:
                     continue
@@ -165,6 +173,10 @@ class Sweep:
             summary_evaluators=[
                 partial(percentage_of_action, action_label=action_label)
                 for action_label in action_space.actions.keys()
+            ]
+            + [
+                HOActionSpaceB.productive_measurement_percentage,
+                HOActionSpaceB.unproductive_measurement_percentage,
             ],
         )
         return {
@@ -177,44 +189,34 @@ class Sweep:
     ):
         """Log the distribution of the next action in the existing experiment to a CSV."""
 
-        log_rows = [
-            {
-                "experiment_id": existing_experiment_id,
-                "action_space": action_space.action_space_name,
-                "split": self.dataset_split,
-                "persistence_level": persistence_level,
-                "geometry_proficiency_level": geometry_proficiency_level,
-                "model_type": model_type.value,
-                "model": self.model_name,
-                **{
-                    f"state_{key.lower()}": value
-                    for key, value in state.state_variables.items()
-                },
-                **self._get_next_action_distribution(
-                    existing_experiment_id, action_space
-                ),
-            }
-            for persistence_level, geometry_proficiency_level, model_type, state, action_space in itertools.product(
-                *self.sweep_dict.values()
-            )
-        ]
-        print(f"No. of log rows: {len(log_rows)}")
-        for row_idx, log_row in enumerate(log_rows):
-            print(f"Logging row {row_idx + 1}/{len(log_rows)}")
-            # Read the list of distributions from a CSV onto a Pandas DataFrame, insert the new distribution, and write back to the CSV
-            if os.path.exists(f"results/{self.dataset_name}.csv"):
-                try:
-                    existing = pd.read_csv(f"results/{self.dataset_name}.csv")
-                    existing = pd.concat([existing, pd.DataFrame([log_row])])
-                    existing.to_csv("results/action_distribution.csv", index=False)
-                except Exception as e:
-                    print(f"Exception: {e}")
-                    df = pd.DataFrame([log_row])
-                    df.to_csv(f"results/{self.dataset_name}.csv", index=False)
-            else:
+        log_row = {
+            "experiment_id": existing_experiment_id,
+            "action_space": action_space.action_space_name,
+            "split": self.dataset_split,
+            "persistence_levels": self.persistence_levels,
+            "geometry_proficiency_levels": self.geometry_proficiency_levels,
+            "model_types": [t.value for t in self.model_types],
+            "model": self.model_name,
+            # **{
+            #     f"state_{key.lower()}": value
+            #     for key, value in state.state_variables.items()
+            # },
+            **self._get_next_action_distribution(existing_experiment_id, action_space),
+        }
+        # Read the list of distributions from a CSV onto a Pandas DataFrame, insert the new distribution, and write back to the CSV
+        if os.path.exists(f"results/action_distribution.csv"):
+            try:
+                existing = pd.read_csv(f"results/action_distribution.csv")
+                existing = pd.concat([existing, pd.DataFrame([log_row])])
+                existing.to_csv(f"results/action_distribution.csv", index=False)
+            except Exception as e:
+                print(f"Exception: {e}")
                 df = pd.DataFrame([log_row])
-                df.to_csv(f"results/{self.dataset_name}.csv", index=False)
-            print(f"Logged next action distribution to results/{self.dataset_name}.csv")
+                df.to_csv(f"results/action_distribution.csv", index=False)
+        else:
+            df = pd.DataFrame([log_row])
+            df.to_csv(f"results/action_distribution.csv", index=False)
+        print(f"Logged next action distribution to results/action_distribution.csv")
 
     def _create_evaluation_dataset(self):
         """Create a LangSmith dataset with all possible combinations of the sweep parameters."""
@@ -226,6 +228,7 @@ class Sweep:
             dataset = client.read_dataset(dataset_name=self.dataset_name)
         samples = [
             Vignette(
+                sweep_id=self.sweep_id,
                 dataset_split=self.dataset_split,
                 learner=Learner(
                     persistence_level=persistence_level,
@@ -252,13 +255,12 @@ class Sweep:
                 dataset_id=dataset.id,
             )
 
-    def run(self, create_dataset: bool = False, num_generations_per_sample: int = 1):
+    def run(self, num_generations_per_sample: int = 1):
         """Create, predict over, and log the next action distribution for the evaluation dataset."""
-        if create_dataset:
-            self._create_evaluation_dataset()
+        self._create_evaluation_dataset()
         experiment_name = self._predict_over_dataset(
             self.dataset_name,
-            {"split": self.dataset_split},
+            {"split": self.dataset_split, "sweep_id": self.sweep_id},
             experiment_prefix="experiment-",
             num_generations_per_sample=num_generations_per_sample,
         ).experiment_name

@@ -1,6 +1,8 @@
 from typing import *
 from dataclasses import dataclass, field
 
+from langsmith.schemas import Example, Run
+
 
 @dataclass
 class ActionSpace:
@@ -56,3 +58,55 @@ class HOActionSpaceB(ActionSpace):
             "UNPREDICTED": "Perform an action not in the action space.",
         }
     )
+
+    @staticmethod
+    def productive_measurement_percentage(
+        runs: list[Run], examples: list[Example]
+    ) -> bool:
+        productive_actions = 0
+        measure_actions = 0
+        for i, run in enumerate(runs):
+            if run.outputs is None:
+                continue
+            action_label = run.outputs["output"]
+            if "MEASURE" in run.outputs["output"]:
+                measure_actions += 1
+                if action_label in [
+                    "MEASURE-F1-Oi",
+                    "MEASURE-F2-Oi",
+                    "MEASURE-A-F1",
+                    "MEASURE-A-F2",
+                    "MEASURE-F1-P",
+                    "MEASURE-F2-P",
+                ]:
+                    productive_actions += 1
+        return {
+            "key": "productive_actions_ratio",
+            "score": productive_actions / measure_actions,
+        }
+
+    @staticmethod
+    def unproductive_measurement_percentage(
+        runs: list[Run], examples: list[Example]
+    ) -> bool:
+        unproductive_actions = 0
+        measure_actions = 0
+        for i, run in enumerate(runs):
+            if run.outputs is None:
+                continue
+            action_label = run.outputs["output"]
+            if "MEASURE" in run.outputs["output"]:
+                measure_actions += 1
+                if action_label not in [
+                    "MEASURE-F1-Oi",
+                    "MEASURE-F2-Oi",
+                    "MEASURE-A-F1",
+                    "MEASURE-A-F2",
+                    "MEASURE-F1-P",
+                    "MEASURE-F2-P",
+                ]:
+                    unproductive_actions += 1
+        return {
+            "key": "unproductive_actions_ratio",
+            "score": unproductive_actions / measure_actions,
+        }

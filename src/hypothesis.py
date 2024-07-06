@@ -9,19 +9,46 @@ load_dotenv(".env")
 
 def learner_characteristic_to_action_label_prob_map(
     dataset_name: Text,
-    experiment_names: List[Text],
     learner_characteristic: Text,
-    action_label: Text,
+    row_fn: Callable[[pd.Series], Any],
 ) -> Dict[Text, float]:
-    mapping = dict()
-    for dataset_name in experiment_names:
-        df = pd.read_csv(f"results/{dataset_name}.csv")
-        mapping[dataset_name] = df[learner_characteristic].values
-    return mapping
+    """Returns a dict of <learner_characteristic> to <cumulative_action_label_prob> for a given learner_characteristic."""
+    df = pd.read_csv(f"results/{dataset_name}.csv")
+    df = df.groupby(learner_characteristic).apply(row_fn, include_groups=False)
+    return {df.iloc[0].name: df.iloc[0][0]}
 
 
 if __name__ == "__main__":
+
+    def percentage_productive_measurements(row):
+        return (
+            row["action_measure-f1-oi_percentage"]
+            + row["action_measure-f2-oi_percentage"]
+            + row["action_measure-a-f1_percentage"]
+            + row["action_measure-a-f2_percentage"]
+            + row["action_measure-f1-p_percentage"]
+            + row["action_measure-f2-p_percentage"]
+        )
+
+    def percentage_unproductive_measurements(row):
+        return (
+            row["action_measure-a-p_percentage"]
+            + row["action_measure-a-oi_percentage"]
+            + row["action_measure-f1-f2_percentage"]
+            + row["action_measure-oi-p_percentage"]
+        )
+
+    DATASET_NAME = "persistsim-sweep-18"
+
     result = learner_characteristic_to_action_label_prob_map(
-        "persistsim-sweep-14", ["experiment--de2bd8a6"], "geometry_proficiency_level"
+        DATASET_NAME,
+        "geometry_proficiency_levels",
+        percentage_productive_measurements,
     )
-    print(result)
+    print(f"Percentage productive measurements: {result}")
+    result = learner_characteristic_to_action_label_prob_map(
+        DATASET_NAME,
+        "geometry_proficiency_levels",
+        percentage_unproductive_measurements,
+    )
+    print(f"Percentage unproductive measurements: {result}")
