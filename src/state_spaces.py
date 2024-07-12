@@ -25,6 +25,15 @@ class State:
 
 
 @dataclass
+class StateSweep:
+    state_space_name: str
+    states: List[State]
+
+    def describe_state(self) -> str:
+        return "\n".join([state.describe_state() for state in self.states])
+
+
+@dataclass
 class HOStateA(State):
 
     state_space_name: str = "HOStateSpaceA"
@@ -84,6 +93,7 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
 
     @staticmethod
     def generate_state_from_vector(state: np.ndarray) -> "HOStateB":
+        state = state.tolist()
         return HOStateB(
             num_submission_attempts=state[0],
             AP=state[1],
@@ -99,7 +109,7 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
         )
 
     @staticmethod
-    def generate_states(num_state_vars=10, std_dev=1):
+    def generate_states(num_state_vars=10, std_dev=1) -> StateSweep:
         result_array = None
         # Sample the sum S from a normal distribution
         for mean in range(0, 11):
@@ -132,7 +142,19 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
                     )
                 )
         # Apply generate_state_from_vector to each row of the result_array
-        return [HOStateB.generate_state_from_vector(state) for state in result_array]
+        return StateSweep(
+            state_space_name="binomial_prior",
+            states=[
+                HOStateB.generate_state_from_vector(state) for state in result_array
+            ],
+        )
+
+    @staticmethod
+    def generate_toy_state_space() -> StateSweep:
+        state_sweep = HOStateB.generate_states()
+        return StateSweep(
+            state_space_name="toy_state_space", states=state_sweep.states[20:30]
+        )
 
 
 if __name__ == "__main__":

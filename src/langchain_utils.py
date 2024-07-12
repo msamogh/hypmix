@@ -9,5 +9,5 @@ load_dotenv(".env")
 def get_next_dataset_name():
     client = Client()
     datasets = list(client.list_datasets())
-    name = f"persistsim-sweep-{len(datasets) + 10}"
+    name = f"persistsim-experiment-{len(datasets) + 10}"
     return name

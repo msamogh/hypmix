@@ -1,54 +1,106 @@
 from typing import *
+from dataclasses import dataclass, field
 
-from dotenv import load_dotenv
-import pandas as pd
+import randomname
+from scipy.stats import spearmanr
 
-load_dotenv(".env.secret")
-load_dotenv(".env")
-
-
-def learner_characteristic_to_action_label_prob_map(
-    dataset_name: Text,
-    learner_characteristic: Text,
-    row_fn: Callable[[pd.Series], Any],
-) -> Dict[Text, float]:
-    """Returns a dict of <learner_characteristic> to <cumulative_action_label_prob> for a given learner_characteristic."""
-    df = pd.read_csv(f"results/{dataset_name}.csv")
-    df = df.groupby(learner_characteristic).apply(row_fn, include_groups=False)
-    return {df.iloc[0].name: df.iloc[0][0]}
+from plot import replot_figures
+from experiment import Experiment
 
 
-if __name__ == "__main__":
-
-    def percentage_productive_measurements(row):
-        return (
-            row["action_measure-f1-oi_percentage"]
-            + row["action_measure-f2-oi_percentage"]
-            + row["action_measure-a-f1_percentage"]
-            + row["action_measure-a-f2_percentage"]
-            + row["action_measure-f1-p_percentage"]
-            + row["action_measure-f2-p_percentage"]
-        )
-
-    def percentage_unproductive_measurements(row):
-        return (
-            row["action_measure-a-p_percentage"]
-            + row["action_measure-a-oi_percentage"]
-            + row["action_measure-f1-f2_percentage"]
-            + row["action_measure-oi-p_percentage"]
-        )
-
-    DATASET_NAME = "persistsim-sweep-18"
-
-    result = learner_characteristic_to_action_label_prob_map(
-        DATASET_NAME,
-        "geometry_proficiency_levels",
-        percentage_productive_measurements,
+@dataclass
+class MDHyp:
+    experiment_configs: List[Dict[Text, Any]]
+    default_values: Dict[Text, Any] = field(
+        default_factory=lambda: {
+            "model_name": "gpt-4",
+            "temperature": 0.9,
+            "persistence_levels": None,
+        }
     )
-    print(f"Percentage productive measurements: {result}")
-    result = learner_characteristic_to_action_label_prob_map(
-        DATASET_NAME,
-        "geometry_proficiency_levels",
-        percentage_unproductive_measurements,
-    )
-    print(f"Percentage unproductive measurements: {result}")
+
+    def __post_init__(self):
+        self.experiments = []
+        for config in self.experiment_configs:
+            # Update config with default values
+            updated_config = {**self.default_values, **config}
+            experiment = Experiment(
+                experiment_id=randomname.get_name(), **updated_config
+            )
+            self.experiments.append(experiment)
+
+    def test(self, fake_llm: bool = False):
+        results = {}
+        for experiment in self.experiments:
+            results[experiment.experiment_id] = experiment.run(fake_llm=fake_llm)
+        replot_figures()
+        self._test(results)
+
+    def _test(self, results: Dict[Text, Any]):
+        raise NotImplementedError
+
+
+@dataclass
+class GeomProductiveMeasureHyp(MDHyp):
+
+    def _test(self, results):
+        x = []
+        y = []
+        for experiment_id, experiment_results in results.items():
+            assert (
+                len(experiment_results["geometry_proficiency_levels"]) == 1
+            ), "Only one geometry proficiency level per experiment is supported for MDHyp1."
+            x.append(experiment_results["geometry_proficiency_levels"][0])
+            y.append(experiment_results["productive_actions_ratio"])
+        print("MDHyp1 Test Results:")
+        print("Geometry Proficiency Levels:", x)
+        print("Action Productive Actions Ratio:", y)
+        print("Spearman Correlation Test:")
+        correlation, p_value = spearmanr(x, y)
+        print(f"Correlation: {correlation}")
+        print(f"P-value: {p_value}")
+        return correlation, p_value
+
+
+@dataclass
+class MDHyp2(MDHyp):
+
+    def _test(self, results):
+        x = []
+        y = []
+        for experiment_id, experiment_results in results.items():
+            assert (
+                len(experiment_results["persistence_levels"]) == 1
+            ), "Only one persistence level per experiment is supported for MDHyp2."
+            x.append(experiment_results["persistence_levels"][0])
+            y.append(experiment_results["exit_percentage"])
+        print("MDHyp2 Test Results:")
+        print("Persistence Levels:", x)
+        print("Exit Percentage:", y)
+        print("Spearman Correlation Test:")
+        correlation, p_value = spearmanr(x, y)
+        print(f"Correlation: {correlation}")
+        print(f"P-value: {p_value}")
+        return correlation, p_value
+
+
+@dataclass
+class MDHyp3(MDHyp):
+
+    def _test(self, results):
+        x = []
+        y = []
+        for experiment_id, experiment_results in results.items():
+            assert (
+                len(experiment_results["geometry_proficiency_levels"]) == 1
+            ), "Only one geometry proficiency level per experiment is supported for MDHyp3."
+            x.append(experiment_results["geometry_proficiency_levels"][0])
+            y.append(experiment_results["action_productive_actions_ratio"])
+        print("MDHyp3 Test Results:")
+        print("Geometry Proficiency Levels:", x)
+        print("Action Productive Actions Ratio:", y)
+        print("Spearman Correlation")
+        correlation, p_value = spearmanr(x, y)
+        print(f"Correlation: {correlation}")
+        print(f"P-value: {p_value}")
+        return correlation, p_value

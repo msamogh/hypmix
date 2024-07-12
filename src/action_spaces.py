@@ -82,7 +82,7 @@ class HOActionSpaceB(ActionSpace):
                     productive_actions += 1
         return {
             "key": "productive_actions_ratio",
-            "score": productive_actions / measure_actions,
+            "score": productive_actions / measure_actions if measure_actions > 0 else 0,
         }
 
     @staticmethod
@@ -108,5 +108,5 @@ class HOActionSpaceB(ActionSpace):
                     unproductive_actions += 1
         return {
             "key": "unproductive_actions_ratio",
-            "score": unproductive_actions / measure_actions,
+            "score": unproductive_actions / measure_actions if measure_actions > 0 else 0,
         }
