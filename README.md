@@ -16,4 +16,6 @@ pip install -r requirements.txt
 
 ## Running Experiments
 
-TLDR: run `src/main.py` with different args for the specific experiment in question, and modify the specific prompts in the associated LangSmith config (e.g., [here](https://smith.langchain.com/hub/amogh-ld/sl-calibration-1?organizationId=7a406b1a-9843-5799-b8d1-dfbf5b4154d1) > `ChatPromptTemplate`)
+TLDR: run `src/main.py` with different args for the specific experiment in question, and modify prompts as either: 
+- modify template prompts in the associated LangSmith config (e.g., [here](https://smith.langchain.com/hub/amogh-ld/sl-calibration-1?organizationId=7a406b1a-9843-5799-b8d1-dfbf5b4154d1) > `ChatPromptTemplate`)
+- modify specific components of prompts (slotted into LangSmith templates) by editing associated dataclasses, etc. in `action_spaces.py`, `state_spaces.py`, etc.
