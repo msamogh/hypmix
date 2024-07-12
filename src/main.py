@@ -14,6 +14,14 @@ def test_geom_productive_hyp(
     fake_llm: bool = False,
     model_name: Text = "gpt-4",
 ):
+    """
+    :param dataset_name: name of this run (in LangSmith and associated results files)
+    :param state_sweep: sample possible states (don't want to go over full combinatorial space, so sample from it)
+    :param geom_proficiency_range: e.g., 1 to 10 (--> `(1, 11)` )
+    :param model_type: level of operationalization
+    :param fake_llm: whether or not to make dummy call (False --> actually call GPT4)
+    :param model_name: SE
+    """
     experiment_configs = [
         {
             "dataset_name": dataset_name,
