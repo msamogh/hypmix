@@ -1,9 +1,9 @@
 import numpy as np
 
 # Parameters
-n = 10      # Number of binary variables
-k = 4       # Desired mean sum
-sigma = 1   # Standard deviation for the normal distribution
+n = 10  # Number of binary variables
+k = 4  # Desired mean sum
+sigma = 1  # Standard deviation for the normal distribution
 
 # Sample the sum S from a normal distribution
 S = int(np.random.normal(k, sigma))

@@ -28,8 +28,6 @@ from learners import (
     Learner,
     LearnerCharacteristicModel,
     ModelType,
-    create_geometry_proficiency_model,
-    create_persistence_model,
 )
 
 
@@ -39,7 +37,6 @@ class Vignette:
 
     experiment_id: Text
     learner: Learner
-    model_type: ModelType
     state: State
     state_sweep_name: Text
     action_space: ActionSpace
@@ -49,10 +46,14 @@ class Vignette:
         return {
             # For the prompt template
             "inputs": {
+                "persistence_model": str(self.learner.persistence_model),
+                "geometry_proficiency_model": str(
+                    self.learner.geometry_proficiency_model
+                ),
                 "persistence_level": self.learner.persistence_level,
                 "geometry_proficiency_level": self.learner.geometry_proficiency_level,
-                "persistence_model": self.learner.persistence_model.describe(),
-                "geometry_proficiency_model": self.learner.geometry_proficiency_model.describe(),
+                "persistence_model": self.learner.persistence_model.describe() if self.learner.persistence_model else None,
+                "geometry_proficiency_model": self.learner.geometry_proficiency_model.describe() if self.learner.geometry_proficiency_model else None,
                 "state": self.state.describe_state(),
                 "state_sweep_name": self.state_sweep_name,
                 "action_space": self.action_space.describe_action_space(),
@@ -61,8 +62,11 @@ class Vignette:
             # For filtering
             "metadata": {
                 "experiment_id": self.experiment_id,
-                "model_type": self.model_type,
                 "state_space_name": self.state.state_space_name,
+                "persistence_model": str(self.learner.persistence_model),
+                "geometry_proficiency_model": str(
+                    self.learner.geometry_proficiency_model
+                ),
                 "state_sweep_name": self.state_sweep_name,
                 "action_space_name": self.action_space.action_space_name,
                 "persistence_level": self.learner.persistence_level,
@@ -81,10 +85,11 @@ class Experiment:
     temperature: float
     prompt_name: Text
 
+    persistence_model: LearnerCharacteristicModel
+    geometry_proficiency_model: LearnerCharacteristicModel
+
     persistence_levels: List[int]
     geometry_proficiency_levels: List[int]
-
-    model_types: ModelType
 
     state_sweep: StateSweep
     action_space: ActionSpace
@@ -92,7 +97,7 @@ class Experiment:
     def __post_init__(self):
         # Initialize client
         self.client = Client()
-
+        # Verify that all model types are the same
         # Load components
         self.prompt = hub.pull(self.prompt_name)
         self.chat_model = ChatOpenAI(
@@ -104,13 +109,14 @@ class Experiment:
     def experiment_dict(self):
         """Used to populate the metadata of the LangSmith dataset."""
         return {
+            "persistence_model": [self.persistence_model],
+            "geometry_proficiency_model": [self.geometry_proficiency_model],
             "persistence_levels": (
                 self.persistence_levels if self.persistence_levels else [None]
             ),
             "geometry_proficiency_levels": self.geometry_proficiency_levels,
-            "model_types": self.model_types,
             "states": self.state_sweep.states,
-            "state_space_name": [self.state_sweep.state_space_name],
+            "state_sweep_name": [self.state_sweep.state_space_name],
             "action_spaces": [self.action_space],
         }
 
@@ -120,7 +126,7 @@ class Experiment:
         dataset_filters: dict,
         num_generations_per_sample: int = 1,
         experiment_prefix: Text = None,
-        fake_llm: bool = False
+        fake_llm: bool = False,
     ):
         """Predict over the dataset and log the results."""
 
@@ -181,6 +187,7 @@ class Experiment:
                 "key": f"{action_label.lower()}_percentage",
                 "score": action_count / len(runs),
             }
+
         results = evaluate_existing(
             existing_experiment_id,
             summary_evaluators=[
@@ -193,8 +200,7 @@ class Experiment:
             ],
         )
         return {
-            result.key: result.score
-            for result in results._summary_results["results"]
+            result.key: result.score for result in results._summary_results["results"]
         }
 
     def _log_next_action_distribution(
@@ -207,7 +213,8 @@ class Experiment:
             "action_space": action_space.action_space_name,
             "persistence_levels": self.persistence_levels,
             "geometry_proficiency_levels": self.geometry_proficiency_levels,
-            "model_types": [t.value for t in self.model_types],
+            "persistence_model": str(self.persistence_model),
+            "geometry_proficiency_model": str(self.geometry_proficiency_model),
             "model": self.model_name,
             "state_sweep_name": self.state_sweep.state_space_name,
             **self._get_next_action_distribution(existing_experiment_id, action_space),
@@ -242,17 +249,14 @@ class Experiment:
                 learner=Learner(
                     persistence_level=persistence_level,
                     geometry_proficiency_level=geometry_proficiency_level,
-                    persistence_model=create_persistence_model(model_type),
-                    geometry_proficiency_model=create_geometry_proficiency_model(
-                        model_type
-                    ),
+                    persistence_model=persistence_model,
+                    geometry_proficiency_model=geometry_proficiency_model,
                 ),
-                model_type=model_type,
                 state_sweep_name=state_sweep_name,
                 state=state,
                 action_space=action_space,
             )
-            for persistence_level, geometry_proficiency_level, model_type, state, state_sweep_name, action_space in itertools.product(
+            for persistence_model, geometry_proficiency_model, persistence_level, geometry_proficiency_level, state, state_sweep_name, action_space in itertools.product(
                 *self.experiment_dict.values()
             )
         ]
@@ -273,6 +277,6 @@ class Experiment:
             {"experiment_id": self.experiment_id},
             experiment_prefix="experiment-",
             num_generations_per_sample=num_generations_per_sample,
-            fake_llm=fake_llm
+            fake_llm=fake_llm,
         ).experiment_name
         return self._log_next_action_distribution(experiment_name, self.action_space)
