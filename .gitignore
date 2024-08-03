@@ -5,3 +5,4 @@ prompts_old/
 *.pyc
 results/*.csv
 figures/*
+**/__pycache__

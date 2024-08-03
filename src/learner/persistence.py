@@ -25,8 +25,8 @@ def PERSISTENCE_NUM_SUBMISSIONS(
         },
     )
     task_abandonment_mdhyp = monotonic_hyp_class(
-        learner_characteristic=_THEORETICAL_MODEL.construct_name,
         behavior_name="abandon the task as the number of submissions increases",
+        learner_characteristic=_THEORETICAL_MODEL.construct_name,
         behavior_long_description="to prematurely exit the session before submitting the right solution",
         behavior_actions=[action_space.exit_action_label],
         positive_relationship=False,
@@ -58,8 +58,8 @@ def PERSISTENCE_TIME_ELAPSED(
         },
     )
     task_abandonment_mdhyp = monotonic_hyp_class(
-        learner_characteristic=_THEORETICAL_MODEL.construct_name,
         behavior_name="abandon the task as the time elapsed increases",
+        learner_characteristic=_THEORETICAL_MODEL.construct_name,
         behavior_long_description="to prematurely exit the session before submitting the right solution",
         behavior_actions=[action_space.exit_action_label],
         positive_relationship=False,

@@ -5,6 +5,7 @@ from typing import *
 @dataclass
 class Hypothesis:
 
+    behavior_name: str
     learner_characteristic: str
 
     def __str__(self):
@@ -18,7 +19,6 @@ class Hypothesis:
 class MonotonicUncalibrated(Hypothesis):
     """A hypothesis class representing all hypotheses about a monotonically-increasing relationship between a learner characteristic and the probability of some desired behavior."""
 
-    behavior_name: str
     behavior_long_description: str
     behavior_actions: List[str]
     positive_relationship: bool
@@ -56,8 +56,6 @@ class MonotonicUncalibrated(Hypothesis):
 @dataclass
 class UniformDistribution(Hypothesis):
     """A hypothesis about a slope relationship between a learner characteristic and the probability of some desired behavior."""
-
-    lc_construct: str
 
     def __str__(self):
         raise NotImplementedError

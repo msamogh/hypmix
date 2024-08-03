@@ -4,7 +4,7 @@ from typing import *
 import randomname
 from scipy.stats import spearmanr
 
-from learner.learners import LearnerCharacteristicModel
+from learner.learners import LearnerCharacteristicModel, Learner
 
 from .experiment import Experiment
 from .mdhyp import Hypothesis
@@ -14,7 +14,7 @@ from .plot import replot_figures
 @dataclass
 class MDHypTester:
     experiment_configs: List[Dict[Text, Any]]
-    default_values: Dict[Text, Any] = field(
+    default_experiment_config: Dict[Text, Any] = field(
         default_factory=lambda: {
             "model_name": "gpt-4-turbo",
             "temperature": 0.9,
@@ -23,22 +23,18 @@ class MDHypTester:
         }
     )
 
-    def __post_init__(self):
-        self.experiments = []
-        for config in self.experiment_configs:
-            # Update config with default values
-            updated_config = {**self.default_values, **config}
-            experiment = Experiment(
-                experiment_id=randomname.get_name(), **updated_config
-            )
-            self.experiments.append(experiment)
-
     def test(self, fake_llm: bool = False):
-        sweep_results = {}
-        for experiment in self.experiments:
-            sweep_results[experiment.experiment_id] = experiment.run(fake_llm=fake_llm)
+        experiment_results = {}
+        for experiment_config in self.experiment_configs:
+            experiment = Experiment(
+                experiment_id=randomname.get_name(),
+                **{**self.default_experiment_config, **experiment_config},
+            )
+            experiment_results[experiment.experiment_id] = experiment.run(
+                fake_llm=fake_llm
+            )
         replot_figures()
-        self._test(sweep_results)
+        self._test(experiment_results)
 
     def _test(self, results: Dict[Text, Any]):
         pass
