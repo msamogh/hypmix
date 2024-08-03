@@ -1,14 +1,15 @@
-from typing import *
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
+from typing import *
 
-from mdhyp import MDHyp, MonotonicMDHyp1, SlopeMDHyp1
+from experiments.mdhyp import Hypothesis, MonotonicUncalibrated
 
 
 class ModelType(Enum):
     THEOR = "theor"
     THEOR_COMP = "theor+comp"
     THEOR_COMP_BEHAV = "theor+comp+behav"
+    BEHAV = "behav"
 
 
 @dataclass
@@ -35,11 +36,10 @@ class ComputationalModel:
 @dataclass
 class BehavioralModel:
     construct_name: str
-    hypotheses: list[MDHyp]
+    hypotheses: list[Hypothesis]
 
     def __str__(self):
-        hypotheses_str = "\n".join([str(h) for h in self.hypotheses])
-        return f"Behavioral Hypotheses: {hypotheses_str}"
+        return "\n".join([str(h) for h in self.hypotheses])
 
 
 @dataclass
@@ -60,13 +60,16 @@ class LearnerCharacteristicModel:
 
     def describe(self) -> str:
         """Formats the model descriptions based on its type."""
-        descriptions = [str(self.theoretical_model)]
-        if self.model_type in [ModelType.THEOR_COMP, ModelType.THEOR_COMP_BEHAV]:
-            descriptions.append(str(self.computational_model))
-        if self.model_type == ModelType.THEOR_COMP_BEHAV:
-            descriptions.append(str(self.behavioral_model))
-        return "\n\n".join(descriptions)
-    
+        if self.model_type == ModelType.BEHAV:
+            return str(self.behavioral_model)
+        else:
+            descriptions = [str(self.theoretical_model)]
+            if self.model_type in [ModelType.THEOR_COMP, ModelType.THEOR_COMP_BEHAV]:
+                descriptions.append(str(self.computational_model))
+            if self.model_type == ModelType.THEOR_COMP_BEHAV:
+                descriptions.append(str(self.behavioral_model))
+            return "\n\n".join(descriptions)
+
     def __str__(self):
         return f"{self.theoretical_model.construct_name}.{self.model_type.name}"
 
@@ -79,10 +82,3 @@ class Learner:
     geometry_proficiency_level: int
     persistence_model: LearnerCharacteristicModel
     geometry_proficiency_model: LearnerCharacteristicModel
-
-
-# if __name__ == "__main__":
-#     geom_model = create_geometry_proficiency_model(ModelType.BEHAVIORAL)
-#     persistence_model = create_persistence_model(ModelType.BEHAVIORAL)
-#     print(geom_model.describe())
-#     print(persistence_model.describe())

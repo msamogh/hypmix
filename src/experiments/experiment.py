@@ -1,34 +1,30 @@
-from typing import *
+import itertools
+import os
+import random
 from dataclasses import dataclass, field
 from functools import partial
-import itertools
-import random
-import os
+from typing import *
 
 random.seed(22)
 
-from langsmith import Client, traceable
+import pandas as pd
+from dotenv import load_dotenv
+from langchain import hub
+from langchain_community.llms.fake import FakeListLLM
+from langchain_core.messages import AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage
-from langchain_community.llms.fake import FakeListLLM
-from langchain import hub
-from langsmith.wrappers import wrap_openai
+from langsmith import Client, traceable
 from langsmith.evaluation import evaluate, evaluate_existing
 from langsmith.schemas import Example, Run
-from dotenv import load_dotenv
-import pandas as pd
+from langsmith.wrappers import wrap_openai
 
 load_dotenv(".env.secret")
 load_dotenv(".env")
 
-from action_spaces import ActionSpace, HOActionSpaceB
-from state_spaces import State, HOStateA, StateSweep
-from learners import (
-    Learner,
-    LearnerCharacteristicModel,
-    ModelType,
-)
+from environment.action_spaces import ActionSpace, HOActionSpaceB
+from environment.state_spaces import HOStateA, State, StateSweep
+from learner.learners import Learner, LearnerCharacteristicModel, ModelType
 
 
 @dataclass
@@ -52,8 +48,16 @@ class Vignette:
                 ),
                 "persistence_level": self.learner.persistence_level,
                 "geometry_proficiency_level": self.learner.geometry_proficiency_level,
-                "persistence_model": self.learner.persistence_model.describe() if self.learner.persistence_model else None,
-                "geometry_proficiency_model": self.learner.geometry_proficiency_model.describe() if self.learner.geometry_proficiency_model else None,
+                "persistence_model": (
+                    self.learner.persistence_model.describe()
+                    if self.learner.persistence_model
+                    else None
+                ),
+                "geometry_proficiency_model": (
+                    self.learner.geometry_proficiency_model.describe()
+                    if self.learner.geometry_proficiency_model
+                    else None
+                ),
                 "state": self.state.describe_state(),
                 "state_sweep_name": self.state_sweep_name,
                 "action_space": self.action_space.describe_action_space(),
@@ -114,7 +118,11 @@ class Experiment:
             "persistence_levels": (
                 self.persistence_levels if self.persistence_levels else [None]
             ),
-            "geometry_proficiency_levels": self.geometry_proficiency_levels,
+            "geometry_proficiency_levels": (
+                self.geometry_proficiency_levels
+                if self.geometry_proficiency_levels
+                else [None]
+            ),
             "states": self.state_sweep.states,
             "state_sweep_name": [self.state_sweep.state_space_name],
             "action_spaces": [self.action_space],
@@ -195,8 +203,8 @@ class Experiment:
                 for action_label in action_space.actions.keys()
             ]
             + [
-                HOActionSpaceB.productive_measurement_percentage,
-                HOActionSpaceB.unproductive_measurement_percentage,
+                action_space.productive_measurement_percentage,
+                action_space.unproductive_measurement_percentage,
             ],
         )
         return {
@@ -243,7 +251,7 @@ class Experiment:
         except Exception as e:
             print(f"Using existing dataset: {self.dataset_name}")
             dataset = client.read_dataset(dataset_name=self.dataset_name)
-        samples = [
+        vignettes = [
             Vignette(
                 experiment_id=self.experiment_id,
                 learner=Learner(
@@ -260,8 +268,8 @@ class Experiment:
                 *self.experiment_dict.values()
             )
         ]
-        for sample in samples:
-            langsmith_sample = sample.as_langsmith_sample
+        for vignette in vignettes:
+            langsmith_sample = vignette.as_langsmith_sample
             client.create_example(
                 inputs=langsmith_sample["inputs"],
                 outputs=langsmith_sample["outputs"],

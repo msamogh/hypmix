@@ -1,20 +1,21 @@
 from typing import *
 
-from action_spaces import HOActionSpaceB
-from state_spaces import HOStateB, StateSweep
-from learners import ModelType
-from hypothesis_tester import MDHypTester
-from persistence import PERSISTENCE_NUM_SUBMISSIONS, PERSISTENCE_TIME_ELAPSED
-from geometry_proficiency import GEOMETRY_PROFICIENCY
+from environment.action_spaces import HOActionSpaceB
+from environment.state_spaces import HOStateB, StateSweep
+from experiments.hypothesis_tester import MDHypTester, test_hypothesis
+from experiments.mdhyp import Hypothesis
+from learner.geometry_proficiency import GEOMETRY_PROFICIENCY
+from learner.learners import Learner, LearnerCharacteristicModel, ModelType
+from learner.persistence import PERSISTENCE_NUM_SUBMISSIONS, PERSISTENCE_TIME_ELAPSED
 
 
 def test_geom_productive_hyp(
     dataset_name: Text,
     state_sweep: StateSweep = None,
     geom_proficiency_range: Tuple[int, int] = (1, 11),
-    model_type: ModelType = ModelType.THEOR_COMP_BEHAV,
+    model_type: ModelType = ModelType.BEHAV,
     fake_llm: bool = False,
-    model_name: Text = "gpt-4",
+    model_name: Text = "gpt-4-turbo",
 ):
     experiment_configs = [
         {
@@ -32,42 +33,14 @@ def test_geom_productive_hyp(
     MDHypTester(experiment_configs).test(fake_llm=fake_llm)
 
 
-# def test_mdhyp_3(
-#     dataset_name: Text,
-#     state_sweep: StateSweep = None,
-#     model_type: ModelType = ModelType.THEOR_COMP_BEHAV,
-# ):
-#     experiment_configs = [
-#         {
-#             "dataset_name": dataset_name,
-#             "prompt_name": "amogh-ld/sl-calibration-1",
-#             "geometry_proficiency_levels": [1],
-#             "persistence_levels": [1],
-#             "model_types": [model_type],
-#             "state_sweep": state_sweep,
-#             "action_space": HOActionSpaceB(),
-#         }
-#     ]
-#     MDHyp3Tester(experiment_configs).test()
+learner_models = [(GEOMETRY_PROFICIENCY, None), ()]
 
 
 if __name__ == "__main__":
-    result_1 = test_geom_productive_hyp(
-        dataset_name=f"mdhyp1-dataset-112",
-        state_sweep=HOStateB.generate_toy_state_space(),
-        geom_proficiency_range=(1, 11),
-        model_type=ModelType.THEOR,
-        model_name="gpt-4-turbo",
-        fake_llm=False,
-    )
-    # result_2 = test_mdhyp_2(
-    #     dataset_name=f"mdhyp2-dataset-1",
-    #     state_sweep=HOStateB.generate_toy_state_space(),
-    #     persistence_level_range=(2, 4),
-    #     model_type=ModelType.THEOR_COMP_BEHAV,
-    # )
-    # result_3 = test_mdhyp_3(
-    #     dataset_name=f"mdhyp3-dataset-1",
-    #     state_sweep=HOStateB.generate_toy_state_space(),
-    #     model_type=ModelType.THEOR_COMP_BEHAV,
+    test_hypothesis()
+    # H_A_test_result = test_hypothesis(
+    #     dataset_name="mdhyp1-dataset-116",
+    #     state_sweep=HOStateB.generate_toy_state_space(num_samples=10),
+    #     geom_proficiency_range=(1, 11),
+    #     fake_llm=False,
     # )

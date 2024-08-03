@@ -1,6 +1,7 @@
-from typing import *
-from dataclasses import dataclass, field
 import random
+from dataclasses import dataclass, field
+from typing import *
+
 import numpy as np
 
 random.seed(42)
@@ -52,44 +53,26 @@ class HOStateB(State):
     AP: int = 0
     AF1: int = 0
     AF2: int = 0
-    AO: int = 0
+    AX: int = 0
     F1P: int = 0
     F1F2: int = 0
-    F1O: int = 0
+    F1X: int = 0
     F2P: int = 0
-    F2O: int = 0
-    OP: int = 0
+    F2X: int = 0
+    PX: int = 0
 
     def describe_state(self) -> str:
         return f"""NUM_SUBMISSION_ATTEMPTS (the number of times the user has submitted an answer since the start of the session): {self.num_submission_attempts}
 AP: {self.AP} (whether the user has measured the distance between Aphelion and Perihelion)
 AF1: {self.AF1} (whether the user has measured the distance between Aphelion and Focus 1)
 AF2: {self.AF2} (whether the user has measured the distance between Aphelion and Focus 2)
-AO: {self.AO} (whether the user has measured the distance between Aphelion and the ith point on the orbit)
+AX: {self.AX} (whether the user has measured the distance between Aphelion and the point X on the orbit)
 F1P: {self.F1P} (whether the user has measured the distance between Focus 1 and Perihelion)
 F1F2: {self.F1F2} (whether the user has measured the distance between Focus 1 and Focus 2)
-F1O: {self.F1O} (whether the user has measured the distance between Focus 1 and the ith point on the orbit)
+F1X: {self.F1X} (whether the user has measured the distance between Focus 1 and the point X on the orbit)
 F2P: {self.F2P} (whether the user has measured the distance between Focus 2 and Perihelion)
-F2O: {self.F2O} (whether the user has measured the distance between Focus 2 and the ith point on the orbit)
-OP: {self.OP} (whether the user has measured the distance between the ith point on the orbit and Perihelion)"""
-
-    @staticmethod
-    def generate_state(
-        num_submission_attempts, action_mask: Dict[str, bool]
-    ) -> "HOStateB":
-        return HOStateB(
-            num_submission_attempts=num_submission_attempts,
-            AP=action_mask.get("AP", 0),
-            AF1=action_mask.get("AF1", 0),
-            AF2=action_mask.get("AF2", 0),
-            AO=action_mask.get("AO", 0),
-            F1P=action_mask.get("F1P", 0),
-            F1F2=action_mask.get("F1F2", 0),
-            F1O=action_mask.get("F1O", 0),
-            F2P=action_mask.get("F2P", 0),
-            F2O=action_mask.get("F2O", 0),
-            OP=action_mask.get("OP", 0),
-        )
+F2X: {self.F2X} (whether the user has measured the distance between Focus 2 and the point X on the orbit)
+PX: {self.PX} (whether the user has measured the distance between Perihelion and the point X on the orbit)"""
 
     @staticmethod
     def generate_state_from_vector(state: np.ndarray) -> "HOStateB":
@@ -99,13 +82,13 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
             AP=state[1],
             AF1=state[2],
             AF2=state[3],
-            AO=state[4],
+            AX=state[4],
             F1P=state[5],
             F1F2=state[6],
-            F1O=state[7],
+            F1X=state[7],
             F2P=state[8],
-            F2O=state[9],
-            OP=state[10],
+            F2X=state[9],
+            PX=state[10],
         )
 
     @staticmethod
@@ -150,14 +133,9 @@ OP: {self.OP} (whether the user has measured the distance between the ith point 
         )
 
     @staticmethod
-    def generate_toy_state_space() -> StateSweep:
+    def generate_toy_state_space(start_idx=20, num_samples=10) -> StateSweep:
         state_sweep = HOStateB.generate_states()
         return StateSweep(
-            state_space_name="toy_state_space", states=state_sweep.states[20:30]
+            state_space_name="toy_state_space",
+            states=state_sweep.states[start_idx : start_idx + num_samples],
         )
-
-
-if __name__ == "__main__":
-    states = HOStateB.generate_states()
-    for state in states:
-        print(state.describe_state())

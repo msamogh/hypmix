@@ -1,6 +1,7 @@
 from io import StringIO
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def replot_figures():
