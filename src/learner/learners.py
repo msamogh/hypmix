@@ -114,16 +114,13 @@ class Learner:
         Note that this model assumes that the developer is passing in a calibrated calibrated_hyp_class. So it does not do the job of verifying whether the calibrated_hyp_class is calibrated.
         """
         # Locate the target hypothesis in the learner model.
-        if learner_characteristic == PROFICIENCY_THEORY.construct_name:
-            tgt_model = self.geometry_proficiency_model
-        elif learner_characteristic == PERSISTENCE_THEORY.construct_name:
-            tgt_model = self.persistence_model
-        tgt_model_hypotheses = tgt_model.behavioral_model.hypotheses
+        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
 
         # Replace existing hypothesis from the learner characteristic's BehaviorModel with  the calibrated hypothesis.
         for hyp_idx in range(len(tgt_model_hypotheses)):
             if tgt_model_hypotheses[hyp_idx].behavior_name == behavior_name:
-                tgt_model.behavioral_model.hypotheses = (
+                tgt_behavioral_model.hypotheses = (
                     tgt_model_hypotheses[:hyp_idx]
                     + [
                         calibrated_hyp_class(
@@ -144,14 +141,24 @@ class Learner:
         behavior_name: str,
     ):
         """Remove an existing hypothesis from the learner model."""
-        if tgt_hyp.learner_characteristic == PROFICIENCY_THEORY.construct_name:
-            tgt_model = self.geometry_proficiency_model
-        elif tgt_hyp.learner_characteristic == PERSISTENCE_THEORY.construct_name:
-            tgt_model = self.persistence_model
-        tgt_model_hypotheses = tgt_model.behavioral_model.hypotheses
+        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
 
-        return copy.deepcopy(self)
+        # Remove existing hypothesis from the learner characteristic's BehaviorModel
+        for hyp_idx in range(len(tgt_model_hypotheses)):
+            if tgt_model_hypotheses[hyp_idx].behavior_name == behavior_name:
+                tgt_behavioral_model.hypotheses = (
+                    tgt_model_hypotheses[:hyp_idx] + tgt_model_hypotheses[hyp_idx + 1 :]
+                )
+                return copy.deepcopy(self)
 
-    def test_hypothesis(self, tgt_hyp: Hypothesis):
+        # If target_hypothesis is not found in the learner model, throw an error.
+        raise ValueError(f"No existing hypothesis found for {behavior_name}.")
+
+    def test_hypothesis(self, learner_characteristic: str, behavior_name: str):
         """Test whether the target hypothesis is satisfied."""
-        pass
+        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
+        for hypothesis in tgt_model_hypotheses:
+            if hypothesis.behavior_name == behavior_name:
+                return hypothesis.test()
