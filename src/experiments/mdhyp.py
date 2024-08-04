@@ -11,13 +11,14 @@ class Hypothesis:
     def __str__(self):
         raise NotImplementedError
 
-    def test_fn(self, experiment_results):
+    def statistical_test(self, experiment_set_results) -> Tuple[float, float]:
+        """Returns a statistic and a p-value."""
         raise NotImplementedError
 
 
 @dataclass
 class MonotonicUncalibrated(Hypothesis):
-    """A hypothesis class representing all hypotheses about a monotonically-increasing relationship between a learner characteristic and the probability of some desired behavior."""
+    """Hypothesis class of all monotonically-increasing relationships between a learner characteristic and the probability of a target action."""
 
     behavior_description: str
     behavior_long_description: str
@@ -34,19 +35,24 @@ class MonotonicUncalibrated(Hypothesis):
         else:
             return f"A learner with a higher {self.lc_construct.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
 
-    def test_fn(self, experiment_results):
+    def test_fn(
+        self,
+        experiment_set_results,
+        lc_key: str = "geometry_proficiency_levels",
+        tgt_action_label_key: str = "productive_actions_ratio",
+    ):
         from scipy.stats import spearmanr
 
         x = []
         y = []
-        for experiment_id, results in experiment_results.values():
+        for experiment_id, experiment_results in experiment_set_results.values():
             assert (
-                len(results["geometry_proficiency_levels"]) == 1
-            ), "Only one geometry proficiency level per experiment is supported for MDHyp1."
-            x.append(results["geometry_proficiency_levels"][0])
-            y.append(results["productive_actions_ratio"])
-        print("Geometry Proficiency Levels:", x)
-        print("Action Productive Actions Ratio:", y)
+                len(experiment_results[lc_key]) == 1
+            ), "Only one LC level per experiment is supported for Monotonic hypotheses."
+            x.append(experiment_results[lc_key][0])
+            y.append(experiment_results[tgt_action_label_key])
+        print("LC Levels:", x)
+        print("Target Action Ratio:", y)
         print("Spearman Correlation Test:")
         correlation, p_value = spearmanr(x, y)
         print(f"Correlation: {correlation}")
@@ -56,10 +62,51 @@ class MonotonicUncalibrated(Hypothesis):
 
 @dataclass
 class UniformDistributionUncalibrated(Hypothesis):
-    """A hypothesis about a slope relationship between a learner characteristic and the probability of some desired behavior."""
+    """Hypothesis class of uniform probability distributions of a target action with respect to a learner characteristic."""
+
+    behavior_description: str
 
     def __str__(self):
-        return f""
+        return f"Learners with "
 
-    def test_fn(self, experiment_results):
+    def test_fn(self, experiment_set_results, tgt_action_labels):
+        from scipy.stats import chisquare
+
+        assert (
+            len(experiment_set_results) == 1
+        ), "Uniform distribution tests can be run only on a single experiment, not an experiment set."
+
+        # Dummy loop (since there is only one iteration anyway)
+        for experiment_id, experiment_results in experiment_set_results.values():
+            return chisquare(
+                [experiment_results[action_label] for action_label in tgt_action_labels]
+            )
+        raise RuntimeError("Uniform distribution could not be tested.")
+
+
+@dataclass
+class MonotonicCalibratedAB(MonotonicUncalibrated):
+
+    def __str__(self):
+        raise NotImplementedError
+
+
+@dataclass
+class MonotonicCalibratedEI(MonotonicUncalibrated):
+
+    def __str__(self):
+        raise NotImplementedError
+
+
+@dataclass
+class UniformCalibratedDF(UniformDistributionUncalibrated):
+
+    def __str__(self):
+        raise NotImplementedError
+
+
+@dataclass
+class UniformCalibratedGH(UniformDistributionUncalibrated):
+
+    def __str__(self):
         raise NotImplementedError

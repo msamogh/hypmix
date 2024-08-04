@@ -1,8 +1,15 @@
+import copy
+import random
+
+random.seed(42)
 from dataclasses import dataclass
 from enum import Enum
 from typing import *
-import copy
 
+import randomname
+
+from environment.action_spaces import ActionSpace
+from environment.state_spaces import StateSweep
 from experiments.mdhyp import Hypothesis, MonotonicUncalibrated
 
 
@@ -240,13 +247,55 @@ class Learner:
             f"No existing hypothesis found for {hypothesis.behavior_name}."
         )
 
-    def test_hypothesis(self, hyp_stack: SingleHypothesisStack):
+    def test_hypothesis(
+        self,
+        tgt_hyp_stack: SingleHypothesisStack,
+        dataset_name: Text,
+        action_space: ActionSpace,
+        state_sweep: StateSweep = None,
+        tgt_lc_value_range: Tuple[int, int] = (1, 11),
+        fake_llm: bool = False,
+        prompt_name: str = "amogh-ld/sl-calibration-1",
+        llm_name: Text = "gpt-4-turbo",
+        llm_temperature: float = 0.9,
+    ):
         """Test whether the target hypothesis is satisfied."""
-        hypothesis = hyp_stack.hypothesis
+        from experiments.experiment import Experiment
+
+        from .geometry_proficiency import THEORETICAL_MODEL_DEFAULT as GP_THEORY
+        from .persistence import THEORETICAL_MODEL_DEFAULT as P_THEORY
+
+        experiment_outputs = dict()
+        # Sweep over different values of the learner characteristic of the target hypothesis.
+        for lc_level in range(*tgt_lc_value_range):
+            # For the LCs that are not currently being tested, just pick a random value between 1 and 10 (since non-target LCs shouldn't make a difference to the marginal distributional hypothesis).
+            if tgt_hypothesis.learner_characteristic == GP_THEORY.construct_name:
+                gp_level, persistence_level = lc_level, random.randint(1, 10)
+            elif tgt_hypothesis.learner_characteristic == P_THEORY.construct_name:
+                persistence_level, gp_level = lc_level, random.randint(1, 10)
+            experiment = Experiment(
+                experiment_id=randomname.get_name(),
+                dataset_name=dataset_name,
+                prompt_name=prompt_name,
+                geometry_proficiency_model=self.geometry_proficiency_model,
+                persistence_model=self.persistence_model,
+                geometry_proficiency_levels=[gp_level],
+                persistence_levels=[persistence_level],
+                state_sweep=state_sweep,
+                action_space=action_space,
+                model_name=llm_name,
+                temperature=llm_temperature,
+            )
+            experiment_outputs[experiment.experiment_id] = experiment.run(
+                fake_llm=fake_llm
+            )
+        stat, p_value = tgt_hypothesis.statistical_test(experiment_outputs)
+
+        tgt_hypothesis = tgt_hyp_stack.hypothesis
         tgt_behavioral_model = self._find_behavioral_model(
-            hypothesis.learner_characteristic
+            tgt_hypothesis.learner_characteristic
         )
         tgt_model_hypotheses = tgt_behavioral_model.hypotheses
-        for hypothesis in tgt_model_hypotheses:
-            if hypothesis.behavior_name == hypothesis.behavior_name:
-                return hypothesis.test()
+        for hyp in tgt_model_hypotheses:
+            if hyp.behavior_name == tgt_hypothesis.behavior_name:
+                return hyp.statistical_test()
