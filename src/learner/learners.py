@@ -103,15 +103,19 @@ class Learner:
         from learner.persistence import THEORETICAL_MODEL_DEFAULT as PERSISTENCE_THEORY
 
         if (
-            new_hyp_stack.learner_characteristic == PROFICIENCY_THEORY.construct_name
+            new_hyp_stack.hypothesis.learner_characteristic
+            == PROFICIENCY_THEORY.construct_name
             and self.geometry_proficiency_model is not None
         ):
             existing_model = self.geometry_proficiency_model
         elif (
-            new_hyp_stack.learner_characteristic == PERSISTENCE_THEORY.construct_name
+            new_hyp_stack.hypothesis.learner_characteristic
+            == PERSISTENCE_THEORY.construct_name
             and self.persistence_model is not None
         ):
             existing_model = self.persistence_model
+        else:
+            return
         assert (
             existing_model.theoretical_model == new_hyp_stack.theoretical_model
             and existing_model.computational_model == new_hyp_stack.computational_model
@@ -138,14 +142,45 @@ class Learner:
         self._check_for_hypothesis_conflicts(new_hyp)
 
         """Add a new hypothesis to the learner model."""
-        if new_hyp.learner_characteristic == PROFICIENCY_THEORY.construct_name:
-            self.geometry_proficiency_model.behavioral_model.hypotheses.append(
-                new_hyp.hypothesis
-            )
-        elif new_hyp.learner_characteristic == PERSISTENCE_THEORY.construct_name:
-            self.persistence_model.behavioral_model.hypotheses.append(
-                new_hyp.hypothesis
-            )
+        if (
+            new_hyp.hypothesis.learner_characteristic
+            == PROFICIENCY_THEORY.construct_name
+        ):
+            if self.geometry_proficiency_model is not None:
+                # If there's already an existing model, just append the hypothesis to it.
+                self.geometry_proficiency_model.behavioral_model.hypotheses.append(
+                    new_hyp.hypothesis
+                )
+            else:
+                # Otherwise, create a new model out of the SingleHypothesisStack.
+                self.geometry_proficiency_model = LearnerCharacteristicModel(
+                    ModelType.THEOR_COMP_BEHAV,
+                    new_hyp.theoretical_model,
+                    new_hyp.computational_model,
+                    BehavioralModel(
+                        new_hyp.hypothesis.learner_characteristic, [new_hyp.hypothesis]
+                    ),
+                )
+        elif (
+            new_hyp.hypothesis.learner_characteristic
+            == PERSISTENCE_THEORY.construct_name
+        ):
+            if self.persistence_model is not None:
+                # If there's already an existing model, just append the hypothesis to it.
+                self.persistence_model.behavioral_model.hypotheses.append(
+                    new_hyp.hypothesis
+                )
+            else:
+                # Otherwise, create a new model out of the SingleHypothesisStack.
+                self.persistence_model = LearnerCharacteristicModel(
+                    ModelType.THEOR_COMP_BEHAV,
+                    new_hyp.theoretical_model,
+                    new_hyp.computational_model,
+                    BehavioralModel(
+                        new_hyp.hypothesis.learner_characteristic, [new_hyp.hypothesis]
+                    ),
+                )
+
         return copy.deepcopy(self)
 
     def calibrate_hypothesis(

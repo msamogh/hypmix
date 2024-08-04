@@ -47,22 +47,22 @@ def test_geom_productive_hyp(
 
 def get_calibrated_class_for_AB():
     # TODO
-    raise NotImplementedError, "Not calibrated"
+    raise NotImplementedError
 
 
 def get_calibrated_class_for_DF():
     # TODO
-    raise NotImplementedError, "Not calibrated"
+    raise NotImplementedError
 
 
 def get_calibrated_class_for_GH():
     # TODO
-    raise NotImplementedError, "Not calibrated"
+    raise NotImplementedError
 
 
 def get_calibrated_class_for_EI():
     # TODO
-    raise NotImplementedError, "Not calibrated"
+    raise NotImplementedError
 
 
 if __name__ == "__main__":
