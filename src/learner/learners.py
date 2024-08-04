@@ -185,27 +185,29 @@ class Learner:
 
     def calibrate_hypothesis(
         self,
-        learner_characteristic: str,
-        behavior_name: str,
+        hyp_stack: SingleHypothesisStack,
         calibrated_hyp_class: Type[Hypothesis],
     ):
         """Replace an uncalibrated hypothesis in the learner model with its calibrated equivalent.
 
         Note that this model assumes that the developer is passing in a calibrated calibrated_hyp_class. So it does not do the job of verifying whether the calibrated_hyp_class is calibrated.
         """
+        hypothesis = hyp_stack.hypothesis
         # Locate the target hypothesis in the learner model.
-        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        tgt_behavioral_model = self._find_behavioral_model(
+            hypothesis.learner_characteristic
+        )
         tgt_model_hypotheses = tgt_behavioral_model.hypotheses
 
         # Replace existing hypothesis from the learner characteristic's BehaviorModel with  the calibrated hypothesis.
         for hyp_idx in range(len(tgt_model_hypotheses)):
-            if tgt_model_hypotheses[hyp_idx].behavior_name == behavior_name:
+            if tgt_model_hypotheses[hyp_idx].behavior_name == hypothesis.behavior_name:
                 tgt_behavioral_model.hypotheses = (
                     tgt_model_hypotheses[:hyp_idx]
                     + [
                         calibrated_hyp_class(
-                            behavior_name,
-                            learner_characteristic,
+                            hypothesis.behavior_name,
+                            hypothesis.learner_characteristic,
                         )
                     ]
                     + tgt_model_hypotheses[hyp_idx + 1 :]
@@ -213,32 +215,38 @@ class Learner:
                 return copy.deepcopy(self)
 
         # If target_hypothesis is not found in the learner model, throw an error.
-        raise ValueError(f"No existing hypothesis found for {behavior_name}.")
+        raise ValueError(
+            f"No existing hypothesis found for {hypothesis.behavior_name}."
+        )
 
-    def remove_hypothesis(
-        self,
-        learner_characteristic: str,
-        behavior_name: str,
-    ):
+    def remove_hypothesis(self, hyp_stack: SingleHypothesisStack):
         """Remove an existing hypothesis from the learner model."""
-        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        hypothesis = hyp_stack.hypothesis
+        tgt_behavioral_model = self._find_behavioral_model(
+            hypothesis.learner_characteristic
+        )
         tgt_model_hypotheses = tgt_behavioral_model.hypotheses
 
         # Remove existing hypothesis from the learner characteristic's BehaviorModel
         for hyp_idx in range(len(tgt_model_hypotheses)):
-            if tgt_model_hypotheses[hyp_idx].behavior_name == behavior_name:
+            if tgt_model_hypotheses[hyp_idx].behavior_name == hypothesis.behavior_name:
                 tgt_behavioral_model.hypotheses = (
                     tgt_model_hypotheses[:hyp_idx] + tgt_model_hypotheses[hyp_idx + 1 :]
                 )
                 return copy.deepcopy(self)
 
         # If target_hypothesis is not found in the learner model, throw an error.
-        raise ValueError(f"No existing hypothesis found for {behavior_name}.")
+        raise ValueError(
+            f"No existing hypothesis found for {hypothesis.behavior_name}."
+        )
 
-    def test_hypothesis(self, learner_characteristic: str, behavior_name: str):
+    def test_hypothesis(self, hyp_stack: SingleHypothesisStack):
         """Test whether the target hypothesis is satisfied."""
-        tgt_behavioral_model = self._find_behavioral_model(learner_characteristic)
+        hypothesis = hyp_stack.hypothesis
+        tgt_behavioral_model = self._find_behavioral_model(
+            hypothesis.learner_characteristic
+        )
         tgt_model_hypotheses = tgt_behavioral_model.hypotheses
         for hypothesis in tgt_model_hypotheses:
-            if hypothesis.behavior_name == behavior_name:
+            if hypothesis.behavior_name == hypothesis.behavior_name:
                 return hypothesis.test()

@@ -102,67 +102,34 @@ if __name__ == "__main__":
     A = A.add_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
 
     B = A.calibrate_hypothesis(
-        HYPOTHESES[
-            "proficiency_vs_good_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
+        HYPOTHESES["proficiency_vs_good_measurements"],
         get_calibrated_class_for_AB(),
     )
 
-    C = A.remove_hypothesis(
-        HYPOTHESES[
-            "proficiency_vs_good_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
-    )
+    C = A.remove_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
     C = C.add_hypothesis(HYPOTHESES["persistence_time"])
-    C_result = C.test_hypothesis(
-        HYPOTHESES["persistence_time"].hypothesis.learner_characteristic,
-        HYPOTHESES["persistence_time"].hypothesis.behavior_name,
-    )
+    C_result = C.test_hypothesis(HYPOTHESES["persistence_time"])
 
     D = B.add_hypothesis(HYPOTHESES["unproficient_random_measurements"])
 
-    E = C.remove_hypothesis(
-        HYPOTHESES["persistence_time"].hypothesis.learner_characteristic,
-        HYPOTHESES["persistence_time"].hypothesis.behavior_name,
-    )
+    E = C.remove_hypothesis(HYPOTHESES["persistence_time"])
     E = C.add_hypothesis(HYPOTHESES["persistence_num_submissions"])
-    E_result = E.test_hypothesis(
-        HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
-        HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
-    )
+    E_result = E.test_hypothesis(HYPOTHESES["persistence_num_submissions"])
 
     F = D.calibrate_hypothesis(
-        HYPOTHESES[
-            "unproficient_random_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
+        HYPOTHESES["unproficient_random_measurements"],
         get_calibrated_class_for_DF(),
     )
     F_result = F.test_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
 
-    G = F.remove_hypothesis(
-        HYPOTHESES[
-            "proficiency_vs_good_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
-    )
-    G_result = G.test_hypothesis(
-        HYPOTHESES[
-            "unproficient_random_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
-    )
+    G = F.remove_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
+    G_result = G.test_hypothesis(HYPOTHESES["unproficient_random_measurements"])
 
     if G_result:
         H = G
     else:
         H = G.calibrate_hypothesis(
-            HYPOTHESES[
-                "unproficient_random_measurements"
-            ].hypothesis.learner_characteristic,
-            HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
+            HYPOTHESES["unproficient_random_measurements"],
             get_calibrated_class_for_GH(),
         )
 
@@ -170,8 +137,7 @@ if __name__ == "__main__":
         I = E
     else:
         I = E.calibrate_hypothesis(
-            HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
-            HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
+            HYPOTHESES["persistence_num_submissions"],
             get_calibrated_class_for_EI(),
         )
 
@@ -180,14 +146,10 @@ if __name__ == "__main__":
         persistence_model=I.persistence_model,
     )
     J_result_1 = J.test_hypothesis(
-        HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
-        HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
+        HYPOTHESES["persistence_num_submissions"],
         get_calibrated_class_for_EI(),
     )
     J_result_2 = J.test_hypothesis(
-        HYPOTHESES[
-            "unproficient_random_measurements"
-        ].hypothesis.learner_characteristic,
-        HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
+        HYPOTHESES["unproficient_random_measurements"],
         get_calibrated_class_for_GH(),
     )
