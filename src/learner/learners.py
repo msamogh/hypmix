@@ -4,10 +4,6 @@ from typing import *
 import copy
 
 from experiments.mdhyp import Hypothesis, MonotonicUncalibrated
-from learner.geometry_proficiency import (
-    _THEORETICAL_MODEL as PROFICIENCY_THEORY,
-)
-from learner.persistence import _THEORETICAL_MODEL as PERSISTENCE_THEORY
 
 
 class ModelType(Enum):
@@ -48,6 +44,15 @@ class BehavioralModel:
 
 
 @dataclass
+class SingleHypothesisStack:
+    """Encapsulates a single hypothesis with its corresponding theoretical and corresponding models."""
+
+    theoretical_model: TheoreticalModel
+    computational_model: ComputationalModel
+    hypothesis: Hypothesis
+
+
+@dataclass
 class LearnerCharacteristicModel:
     """Data class for modeling learner characteristics."""
 
@@ -83,24 +88,64 @@ class LearnerCharacteristicModel:
 class Learner:
     """Data class for a learner."""
 
-    persistence_model: LearnerCharacteristicModel
-    geometry_proficiency_model: LearnerCharacteristicModel
+    persistence_model: Optional[LearnerCharacteristicModel] = None
+    geometry_proficiency_model: Optional[LearnerCharacteristicModel] = None
     persistence_level: Optional[int] = None
     geometry_proficiency_level: Optional[int] = None
 
+    def _check_for_hypothesis_conflicts(self, new_hyp_stack: SingleHypothesisStack):
+        """Check if new_hyp contains theoretical or computational models that conflict with the existing learner model.
+
+        Raises an AssertionError if a conflict is found."""
+        from learner.geometry_proficiency import (
+            THEORETICAL_MODEL_DEFAULT as PROFICIENCY_THEORY,
+        )
+        from learner.persistence import THEORETICAL_MODEL_DEFAULT as PERSISTENCE_THEORY
+
+        if (
+            new_hyp_stack.learner_characteristic == PROFICIENCY_THEORY.construct_name
+            and self.geometry_proficiency_model is not None
+        ):
+            existing_model = self.geometry_proficiency_model
+        elif (
+            new_hyp_stack.learner_characteristic == PERSISTENCE_THEORY.construct_name
+            and self.persistence_model is not None
+        ):
+            existing_model = self.persistence_model
+        assert (
+            existing_model.theoretical_model == new_hyp_stack.theoretical_model
+            and existing_model.computational_model == new_hyp_stack.computational_model
+        )
+
     def _find_behavioral_model(self, learner_characteristic: str):
+        from learner.geometry_proficiency import (
+            THEORETICAL_MODEL_DEFAULT as PROFICIENCY_THEORY,
+        )
+        from learner.persistence import THEORETICAL_MODEL_DEFAULT as PERSISTENCE_THEORY
+
         if learner_characteristic == PROFICIENCY_THEORY.construct_name:
             return self.geometry_proficiency_model.behavioral_model
         elif learner_characteristic == PERSISTENCE_THEORY.construct_name:
             return self.persistence_model.behavioral_model
         raise ValueError(f"Unknown learner characteristic: {learner_characteristic}")
 
-    def add_hypothesis(self, new_hyp: Hypothesis):
+    def add_hypothesis(self, new_hyp: SingleHypothesisStack):
+        from learner.geometry_proficiency import (
+            THEORETICAL_MODEL_DEFAULT as PROFICIENCY_THEORY,
+        )
+        from learner.persistence import THEORETICAL_MODEL_DEFAULT as PERSISTENCE_THEORY
+
+        self._check_for_hypothesis_conflicts(new_hyp)
+
         """Add a new hypothesis to the learner model."""
         if new_hyp.learner_characteristic == PROFICIENCY_THEORY.construct_name:
-            self.geometry_proficiency_model.behavioral_model.hypotheses.append(new_hyp)
+            self.geometry_proficiency_model.behavioral_model.hypotheses.append(
+                new_hyp.hypothesis
+            )
         elif new_hyp.learner_characteristic == PERSISTENCE_THEORY.construct_name:
-            self.persistence_model.behavioral_model.hypotheses.append(new_hyp)
+            self.persistence_model.behavioral_model.hypotheses.append(
+                new_hyp.hypothesis
+            )
         return copy.deepcopy(self)
 
     def calibrate_hypothesis(

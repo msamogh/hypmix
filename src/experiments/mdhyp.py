@@ -19,6 +19,7 @@ class Hypothesis:
 class MonotonicUncalibrated(Hypothesis):
     """A hypothesis class representing all hypotheses about a monotonically-increasing relationship between a learner characteristic and the probability of some desired behavior."""
 
+    behavior_description: str
     behavior_long_description: str
     behavior_actions: List[str]
     positive_relationship: bool
@@ -29,9 +30,9 @@ class MonotonicUncalibrated(Hypothesis):
             return ", ".join([f"'{action}'" for action in self.behavior_actions])
 
         if self.positive_relationship:
-            return f"A learner with a higher {self.lc_construct.lower()} level is more likely to {self.behavior_name} (i.e., {self.behavior_long_description}). To '{self.behavior_name}' is to make one of the following actions: {actions_list_str()}."
+            return f"A learner with a higher {self.lc_construct.lower()} level is more likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
         else:
-            return f"A learner with a higher {self.lc_construct.lower()} level is less likely to {self.behavior_name} (i.e., {self.behavior_long_description}). To '{self.behavior_name}' is to make one of the following actions: {actions_list_str()}."
+            return f"A learner with a higher {self.lc_construct.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
 
     def test_fn(self, experiment_results):
         from scipy.stats import spearmanr
@@ -54,11 +55,11 @@ class MonotonicUncalibrated(Hypothesis):
 
 
 @dataclass
-class UniformDistribution(Hypothesis):
+class UniformDistributionUncalibrated(Hypothesis):
     """A hypothesis about a slope relationship between a learner characteristic and the probability of some desired behavior."""
 
     def __str__(self):
-        raise NotImplementedError
+        return f""
 
     def test_fn(self, experiment_results):
         raise NotImplementedError
