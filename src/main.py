@@ -1,48 +1,60 @@
 from typing import *
 
-from environment.action_spaces import HOActionSpaceB
+import random
+
+random.seed(42)
+
+import randomname
+
+from environment.action_spaces import HOActionSpace, HOActionSpaceB
 from environment.state_spaces import StateSweep
 from experiments.hypothesis_tester import MDHypTester
+from experiments.experiment import Experiment
 from experiments.mdhyp import Hypothesis
-from learner.geometry_proficiency import COMPUTATIONAL_MODEL_DEFAULT as GP_COMP
-from learner.geometry_proficiency import THEORETICAL_MODEL_DEFAULT as GP_THEORY
 from learner.geometry_proficiency import (
+    THEORETICAL_MODEL_DEFAULT as GP_THEORY,
     productive_measurement_monotonic_mdhyp_factory,
     productive_measurement_uniform_mdhyp_factory,
 )
-from learner.learners import Learner, ModelType, LearnerCharacteristicModel
-from learner.persistence import COMPUTATIONAL_MODEL_NUM_SUBMISSIONS as P_COMP_N
-from learner.persistence import COMPUTATIONAL_MODEL_TIME_ELAPSED as P_COMP_T
-from learner.persistence import THEORETICAL_MODEL_DEFAULT as P_THEORY
+from learner.learners import Learner
 from learner.persistence import (
+    THEORETICAL_MODEL_DEFAULT as P_THEORY,
     abandoning_behavior_num_submissions_mdhyp_factory,
     abandoning_behavior_time_elapsed_mdhyp_factory,
 )
 
 
-def test_geom_productive_hyp(
+def test_hypothesis(
     dataset_name: Text,
-    geometry_proficiency_model: LearnerCharacteristicModel,
-    persistence_model: LearnerCharacteristicModel,
+    learner: Learner,
+    hypothesis: Hypothesis,
+    action_space: HOActionSpace,
     state_sweep: StateSweep = None,
     learner_characteristic_value_range: Tuple[int, int] = (1, 11),
     fake_llm: bool = False,
-    model_name: Text = "gpt-4-turbo",
+    llm_name: Text = "gpt-4-turbo",
+    llm_temperature: float = 0.9,
 ):
-    experiment_configs = [
-        {
-            "dataset_name": dataset_name,
-            "prompt_name": "amogh-ld/sl-calibration-1",
-            "geometry_proficiency_model": geometry_proficiency_model,
-            "persistence_model": persistence_model,
-            "geometry_proficiency_levels": [geom_proficiency_level],
-            "state_sweep": state_sweep,
-            "action_space": HOActionSpaceB(),
-            "model_name": model_name,
-        }
-        for geom_proficiency_level in range(*learner_characteristic_value_range)
-    ]
-    MDHypTester(experiment_configs).test(fake_llm=fake_llm)
+    experiment_results = dict()
+    for lc_level in range(*learner_characteristic_value_range):
+        if hypothesis.learner_characteristic == GP_THEORY.construct_name:
+            gp_level, persistence_level = lc_level, random.randint(1, 10)
+        elif hypothesis.learner_characteristic == P_THEORY.construct_name:
+            persistence_level, gp_level = lc_level, random.randint(1, 10)
+        experiment = Experiment(
+            experiment_id=randomname.get_name(),
+            dataset_name=dataset_name,
+            prompt_name="amogh-ld/sl-calibration-1",
+            geometry_proficiency_model=learner.geometry_proficiency_model,
+            persistence_model=learner.persistence_model,
+            geometry_proficiency_levels=[gp_level],
+            persistence_levels=[persistence_level],
+            state_sweep=state_sweep,
+            action_space=action_space,
+            model_name=llm_name,
+            temperature=llm_temperature,
+        )
+        experiment_results[experiment.experiment_id] = experiment.run(fake_llm=fake_llm)
 
 
 def get_calibrated_class_for_AB():
