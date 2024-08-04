@@ -10,7 +10,7 @@ from learner.geometry_proficiency import (
     productive_measurement_monotonic_mdhyp_factory,
     productive_measurement_uniform_mdhyp_factory,
 )
-from learner.learners import Learner, ModelType
+from learner.learners import Learner, ModelType, LearnerCharacteristicModel
 from learner.persistence import COMPUTATIONAL_MODEL_NUM_SUBMISSIONS as P_COMP_N
 from learner.persistence import COMPUTATIONAL_MODEL_TIME_ELAPSED as P_COMP_T
 from learner.persistence import THEORETICAL_MODEL_DEFAULT as P_THEORY
@@ -22,6 +22,8 @@ from learner.persistence import (
 
 def test_geom_productive_hyp(
     dataset_name: Text,
+    geometry_proficiency_model: LearnerCharacteristicModel,
+    persistence_model: LearnerCharacteristicModel,
     state_sweep: StateSweep = None,
     learner_characteristic_value_range: Tuple[int, int] = (1, 11),
     fake_llm: bool = False,
@@ -31,10 +33,8 @@ def test_geom_productive_hyp(
         {
             "dataset_name": dataset_name,
             "prompt_name": "amogh-ld/sl-calibration-1",
-            "geometry_proficiency_model": GEOMETRY_PROFICIENCY_MONO(
-                ModelType.THEOR_COMP_BEHAV
-            ),
-            "persistence_model": None,
+            "geometry_proficiency_model": geometry_proficiency_model,
+            "persistence_model": persistence_model,
             "geometry_proficiency_levels": [geom_proficiency_level],
             "state_sweep": state_sweep,
             "action_space": HOActionSpaceB(),
@@ -90,52 +90,50 @@ if __name__ == "__main__":
     A = A.add_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
 
     B = A.calibrate_hypothesis(
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.learner_characteristic,
+        HYPOTHESES[
+            "proficiency_vs_good_measurements"
+        ].hypothesis.learner_characteristic,
         HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
         get_calibrated_class_for_AB(),
     )
 
     C = A.remove_hypothesis(
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.learner_characteristic,
+        HYPOTHESES[
+            "proficiency_vs_good_measurements"
+        ].hypothesis.learner_characteristic,
         HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
     )
     C = C.add_hypothesis(HYPOTHESES["persistence_time"])
     C_result = C.test_hypothesis(
-        HYPOTHESES[
-            "persistence_time"
-        ].hypothesis.learner_characteristic,
+        HYPOTHESES["persistence_time"].hypothesis.learner_characteristic,
         HYPOTHESES["persistence_time"].hypothesis.behavior_name,
     )
 
     D = B.add_hypothesis(HYPOTHESES["unproficient_random_measurements"])
 
     E = C.remove_hypothesis(
-        HYPOTHESES[
-            "persistence_time"
-        ].hypothesis.learner_characteristic,
+        HYPOTHESES["persistence_time"].hypothesis.learner_characteristic,
         HYPOTHESES["persistence_time"].hypothesis.behavior_name,
     )
-    E = C.add_hypothesis(
-        HYPOTHESES["persistence_num_submissions"]
-    )
+    E = C.add_hypothesis(HYPOTHESES["persistence_num_submissions"])
     E_result = E.test_hypothesis(
-        HYPOTHESES[
-            "persistence_num_submissions"
-        ].hypothesis.learner_characteristic,
+        HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
         HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
     )
 
     F = D.calibrate_hypothesis(
-        HYPOTHESES["unproficient_random_measurements"].hypothesis.learner_characteristic,
+        HYPOTHESES[
+            "unproficient_random_measurements"
+        ].hypothesis.learner_characteristic,
         HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
         get_calibrated_class_for_DF(),
     )
-    F_result = F.test_hypothesis(
-        HYPOTHESES["proficiency_vs_good_measurements"]
-    )
+    F_result = F.test_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
 
     G = F.remove_hypothesis(
-        HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.learner_characteristic,
+        HYPOTHESES[
+            "proficiency_vs_good_measurements"
+        ].hypothesis.learner_characteristic,
         HYPOTHESES["proficiency_vs_good_measurements"].hypothesis.behavior_name,
     )
     G_result = G.test_hypothesis(
@@ -149,9 +147,11 @@ if __name__ == "__main__":
         H = G
     else:
         H = G.calibrate_hypothesis(
-            HYPOTHESES["unproficient_random_measurements"].hypothesis.learner_characteristic,
+            HYPOTHESES[
+                "unproficient_random_measurements"
+            ].hypothesis.learner_characteristic,
             HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
-            get_calibrated_class_for_GH()
+            get_calibrated_class_for_GH(),
         )
 
     if E_result:
@@ -160,20 +160,22 @@ if __name__ == "__main__":
         I = E.calibrate_hypothesis(
             HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
             HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
-            get_calibrated_class_for_EI()
+            get_calibrated_class_for_EI(),
         )
 
     J = Learner(
         geometry_proficiency_model=H.geometry_proficiency_model,
-        persistence_model=I.persistence_model
+        persistence_model=I.persistence_model,
     )
     J_result_1 = J.test_hypothesis(
         HYPOTHESES["persistence_num_submissions"].hypothesis.learner_characteristic,
         HYPOTHESES["persistence_num_submissions"].hypothesis.behavior_name,
-        get_calibrated_class_for_EI()
+        get_calibrated_class_for_EI(),
     )
     J_result_2 = J.test_hypothesis(
-        HYPOTHESES["unproficient_random_measurements"].hypothesis.learner_characteristic,
+        HYPOTHESES[
+            "unproficient_random_measurements"
+        ].hypothesis.learner_characteristic,
         HYPOTHESES["unproficient_random_measurements"].hypothesis.behavior_name,
-        get_calibrated_class_for_GH()
+        get_calibrated_class_for_GH(),
     )
