@@ -49,9 +49,19 @@ if __name__ == "__main__":
         A = Learner()
 
         A = A.add_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
+        A_result = A.test_hypothesis(
+            HYPOTHESES["proficiency_vs_good_measurements"],
+            DATASET_NAME,
+            action_space,
+            STATE_SWEEP,
+            tgt_lc_value_range=(3, 6),
+            lc_key="geometry_proficiency_levels",
+            tgt_action_label_key="productive_actions_ratio",
+        )
 
         breakpoint()
 
+        # Add the calibrated hypothesis to the master HYPOTHESES map under the key "proficiency_vs_good_measurements_AB"
         B, HYPOTHESES["proficiency_vs_good_measurements_AB"] = A.calibrate_hypothesis(
             HYPOTHESES["proficiency_vs_good_measurements"],
             MonotonicCalibratedAB,

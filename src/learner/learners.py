@@ -222,6 +222,7 @@ class Learner:
                     + [calibrated_hyp]
                     + tgt_model_hypotheses[hyp_idx + 1 :]
                 )
+                # Also return the new, calibrated hypothesis.
                 return (
                     copy.deepcopy(self),
                     SingleHypothesisStack(
@@ -268,6 +269,7 @@ class Learner:
         prompt_name: str = "amogh-ld/sl-calibration-1",
         llm_name: Text = "gpt-4-turbo",
         llm_temperature: float = 0.9,
+        **stat_test_kwargs,
     ):
         """Test whether the target hypothesis is satisfied."""
         from experiments.experiment import Experiment
@@ -279,7 +281,6 @@ class Learner:
         tgt_behavioral_model = self._find_behavioral_model(
             tgt_hypothesis.learner_characteristic
         )
-        breakpoint()
         assert (
             tgt_hypothesis in tgt_behavioral_model.hypotheses
         ), f"{tgt_hypothesis} not found in learner model!"
@@ -308,5 +309,7 @@ class Learner:
             experiment_outputs[experiment.experiment_id] = experiment.run(
                 fake_llm=fake_llm
             )
-        stat, p_value = tgt_hypothesis.statistical_test(experiment_outputs)
+        stat, p_value = tgt_hypothesis.statistical_test(
+            experiment_outputs, **stat_test_kwargs
+        )
         return stat, p_value

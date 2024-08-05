@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import *
+from typing import Tuple
 
 
-@dataclass(eq=True)
+@dataclass
 class Hypothesis:
 
     behavior_name: str
@@ -11,12 +12,11 @@ class Hypothesis:
     def __str__(self):
         raise NotImplementedError
 
-    def statistical_test(self, experiment_set_results) -> Tuple[float, float]:
+    def statistical_test(
+        self, experiment_set_results, **stat_test_kwargs
+    ) -> Tuple[float, float]:
         """Returns a statistic and a p-value."""
         raise NotImplementedError
-    
-    def __eq__(self, other):
-        return self.behavior_name == other.behavior_name and self.learner_characteristic and other.learner_characteristic
 
 
 @dataclass
@@ -38,17 +38,17 @@ class MonotonicUncalibrated(Hypothesis):
         else:
             return f"A learner with a higher {self.learner_characteristic.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
 
-    def test_fn(
-        self,
-        experiment_set_results,
-        lc_key: str = "geometry_proficiency_levels",
-        tgt_action_label_key: str = "productive_actions_ratio",
-    ):
+    def statistical_test(self, experiment_set_results, **stat_test_kwargs):
         from scipy.stats import spearmanr
+
+        lc_key = stat_test_kwargs.get("lc_key", "geometry_proficiency_levels")
+        tgt_action_label_key = stat_test_kwargs.get(
+            "tgt_action_label_key", "productive_actions_ratio"
+        )
 
         x = []
         y = []
-        for experiment_id, experiment_results in experiment_set_results.values():
+        for experiment_results in experiment_set_results.values():
             assert (
                 len(experiment_results[lc_key]) == 1
             ), "Only one LC level per experiment is supported for Monotonic hypotheses."
@@ -80,15 +80,17 @@ class UniformDistributionUncalibrated(Hypothesis):
 
         return f"As learners get closer and closer to the {self.low_or_high}er end of the {self.learner_characteristic.lower()} spectrum (value of {1 if self.low_or_high == 'low' else 'high'}) are equally likely to perform the following actions. In other words, such a learner exhibits a uniform distribution over these actions: {actions_list_str()}"
 
-    def test_fn(self, experiment_set_results, tgt_action_labels):
+    def statistical_test(self, experiment_set_results, **stat_test_kwargs):
         from scipy.stats import chisquare
+
+        tgt_action_labels = stat_test_kwargs.get("tgt_action_labels", None)
 
         assert (
             len(experiment_set_results) == 1
         ), "Uniform distribution tests can be run only on a single experiment, not an experiment set."
 
         # Dummy loop (since there is only one iteration anyway)
-        for _, experiment_results in experiment_set_results.values():
+        for experiment_results in experiment_set_results.values():
             return chisquare(
                 [experiment_results[action_label] for action_label in tgt_action_labels]
             )
