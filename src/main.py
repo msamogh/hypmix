@@ -54,9 +54,9 @@ if __name__ == "__main__":
             DATASET_NAME,
             action_space,
             STATE_SWEEP,
-            tgt_lc_value_range=(3, 6),
+            tgt_lc_value_range=(1, 10),
             lc_key="geometry_proficiency_levels",
-            tgt_action_label_key="productive_actions_ratio",
+            tgt_metric_key="productive_actions_ratio",
         )
 
         breakpoint()

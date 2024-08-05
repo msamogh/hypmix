@@ -43,7 +43,7 @@ class MonotonicUncalibrated(Hypothesis):
 
         lc_key = stat_test_kwargs.get("lc_key", "geometry_proficiency_levels")
         tgt_action_label_key = stat_test_kwargs.get(
-            "tgt_action_label_key", "productive_actions_ratio"
+            "tgt_metric_key", "productive_actions_ratio"
         )
 
         x = []
@@ -55,7 +55,7 @@ class MonotonicUncalibrated(Hypothesis):
             x.append(experiment_results[lc_key][0])
             y.append(experiment_results[tgt_action_label_key])
         print("LC Levels:", x)
-        print("Target Action Ratio:", y)
+        print("Target Metrics:", y)
         print("Spearman Correlation Test:")
         correlation, p_value = spearmanr(x, y)
         print(f"Correlation: {correlation}")
