@@ -2,7 +2,6 @@ from typing import *
 
 from environment.action_spaces import HOActionSpace
 from experiments.mdhyp import (
-    Hypothesis,
     MonotonicUncalibrated,
     UniformDistributionUncalibrated,
 )
@@ -48,5 +47,11 @@ def productive_measurement_uniform_mdhyp_factory(
         UniformDistributionUncalibrated(
             behavior_name="all_measurements_equally_likely",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
+            behavior_actions=[
+                action
+                for action in action_space.actions.keys()
+                if action_space.is_measure_action(action)
+            ],
+            low_or_high="low",
         ),
     )

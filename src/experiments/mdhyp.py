@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import *
 
 
-@dataclass
+@dataclass(eq=True)
 class Hypothesis:
 
     behavior_name: str
@@ -14,6 +14,9 @@ class Hypothesis:
     def statistical_test(self, experiment_set_results) -> Tuple[float, float]:
         """Returns a statistic and a p-value."""
         raise NotImplementedError
+    
+    def __eq__(self, other):
+        return self.behavior_name == other.behavior_name and self.learner_characteristic and other.learner_characteristic
 
 
 @dataclass
@@ -31,9 +34,9 @@ class MonotonicUncalibrated(Hypothesis):
             return ", ".join([f"'{action}'" for action in self.behavior_actions])
 
         if self.positive_relationship:
-            return f"A learner with a higher {self.lc_construct.lower()} level is more likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
+            return f"A learner with a higher {self.learner_characteristic.lower()} level is more likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
         else:
-            return f"A learner with a higher {self.lc_construct.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
+            return f"A learner with a higher {self.learner_characteristic.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
 
     def test_fn(
         self,
@@ -64,10 +67,18 @@ class MonotonicUncalibrated(Hypothesis):
 class UniformDistributionUncalibrated(Hypothesis):
     """Hypothesis class of uniform probability distributions of a target action with respect to a learner characteristic."""
 
-    behavior_description: str
+    behavior_actions: List[str]
+    low_or_high: str
+
+    def __post_init__(self):
+        assert self.low_or_high in ["low", "high"]
 
     def __str__(self):
-        return f"Learners with "
+
+        def actions_list_str():
+            return ", ".join([f"'{action}'" for action in self.behavior_actions])
+
+        return f"As learners get closer and closer to the {self.low_or_high}er end of the {self.learner_characteristic.lower()} spectrum (value of {1 if self.low_or_high == 'low' else 'high'}) are equally likely to perform the following actions. In other words, such a learner exhibits a uniform distribution over these actions: {actions_list_str()}"
 
     def test_fn(self, experiment_set_results, tgt_action_labels):
         from scipy.stats import chisquare
@@ -77,7 +88,7 @@ class UniformDistributionUncalibrated(Hypothesis):
         ), "Uniform distribution tests can be run only on a single experiment, not an experiment set."
 
         # Dummy loop (since there is only one iteration anyway)
-        for experiment_id, experiment_results in experiment_set_results.values():
+        for _, experiment_results in experiment_set_results.values():
             return chisquare(
                 [experiment_results[action_label] for action_label in tgt_action_labels]
             )

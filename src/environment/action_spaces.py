@@ -48,10 +48,9 @@ class HOActionSpace(ActionSpace):
     def exit_action_label(self) -> str:
         raise NotImplementedError
 
-    def is_measure_action(self, llm_prediction: str):
+    def is_measure_action(self, some_string: str):
         raise NotImplementedError
 
-    @property
     def productive_measurement_percentage(
         self, runs: list[Run], examples: list[Example]
     ) -> bool:
@@ -73,7 +72,6 @@ class HOActionSpace(ActionSpace):
             "score": productive_actions / measure_actions if measure_actions > 0 else 0,
         }
 
-    @property
     def unproductive_measurement_percentage(
         self, runs: list[Run], examples: list[Example]
     ) -> bool:
@@ -99,7 +97,7 @@ class HOActionSpace(ActionSpace):
 
 
 @dataclass
-class HOActionSpaceB(ActionSpace):
+class HOActionSpaceB(HOActionSpace):
 
     action_space_name: str = "HOActionSpaceB"
     actions: Dict[Text, Text] = field(
@@ -135,8 +133,8 @@ class HOActionSpaceB(ActionSpace):
             "MEASURE-F2-P",
         ]
 
-    def is_measure_action(self, llm_prediction):
-        return "MEASURE" in llm_prediction
+    def is_measure_action(self, some_string):
+        return "MEASURE" in some_string
 
 
 @dataclass
@@ -176,8 +174,8 @@ class HOActionSpaceC(HOActionSpace):
             "MEASURE-P-F2",
         ]
 
-    def is_measure_action(self, llm_prediction):
-        return "MEASURE" in llm_prediction
+    def is_measure_action(self, some_string):
+        return "MEASURE" in some_string
 
 
 @dataclass
@@ -217,5 +215,5 @@ class HOActionSpaceD(HOActionSpace):
             "CALC(f2, p)",
         ]
 
-    def is_measure_action(self, llm_prediction):
-        return "CALC" in llm_prediction
+    def is_measure_action(self, some_string):
+        return "CALC" in some_string

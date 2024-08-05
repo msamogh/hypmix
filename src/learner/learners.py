@@ -209,17 +209,27 @@ class Learner:
         # Replace existing hypothesis from the learner characteristic's BehaviorModel with  the calibrated hypothesis.
         for hyp_idx in range(len(tgt_model_hypotheses)):
             if tgt_model_hypotheses[hyp_idx].behavior_name == hypothesis.behavior_name:
+                calibrated_hyp = calibrated_hyp_class(
+                    behavior_name=hypothesis.behavior_name,
+                    learner_characteristic=hypothesis.learner_characteristic,
+                    behavior_description=hypothesis.behavior_description,
+                    behavior_long_description=hypothesis.behavior_long_description,
+                    behavior_actions=hypothesis.behavior_actions,
+                    positive_relationship=hypothesis.positive_relationship,
+                )
                 tgt_behavioral_model.hypotheses = (
                     tgt_model_hypotheses[:hyp_idx]
-                    + [
-                        calibrated_hyp_class(
-                            hypothesis.behavior_name,
-                            hypothesis.learner_characteristic,
-                        )
-                    ]
+                    + [calibrated_hyp]
                     + tgt_model_hypotheses[hyp_idx + 1 :]
                 )
-                return copy.deepcopy(self)
+                return (
+                    copy.deepcopy(self),
+                    SingleHypothesisStack(
+                        hyp_stack.theoretical_model,
+                        hyp_stack.computational_model,
+                        calibrated_hyp,
+                    ),
+                )
 
         # If target_hypothesis is not found in the learner model, throw an error.
         raise ValueError(
@@ -252,7 +262,7 @@ class Learner:
         tgt_hyp_stack: SingleHypothesisStack,
         dataset_name: Text,
         action_space: ActionSpace,
-        state_sweep: StateSweep = None,
+        state_sweep: StateSweep,
         tgt_lc_value_range: Tuple[int, int] = (1, 11),
         fake_llm: bool = False,
         prompt_name: str = "amogh-ld/sl-calibration-1",
@@ -264,6 +274,15 @@ class Learner:
 
         from .geometry_proficiency import THEORETICAL_MODEL_DEFAULT as GP_THEORY
         from .persistence import THEORETICAL_MODEL_DEFAULT as P_THEORY
+
+        tgt_hypothesis = tgt_hyp_stack.hypothesis
+        tgt_behavioral_model = self._find_behavioral_model(
+            tgt_hypothesis.learner_characteristic
+        )
+        breakpoint()
+        assert (
+            tgt_hypothesis in tgt_behavioral_model.hypotheses
+        ), f"{tgt_hypothesis} not found in learner model!"
 
         experiment_outputs = dict()
         # Sweep over different values of the learner characteristic of the target hypothesis.
@@ -290,12 +309,4 @@ class Learner:
                 fake_llm=fake_llm
             )
         stat, p_value = tgt_hypothesis.statistical_test(experiment_outputs)
-
-        tgt_hypothesis = tgt_hyp_stack.hypothesis
-        tgt_behavioral_model = self._find_behavioral_model(
-            tgt_hypothesis.learner_characteristic
-        )
-        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
-        for hyp in tgt_model_hypotheses:
-            if hyp.behavior_name == tgt_hypothesis.behavior_name:
-                return hyp.statistical_test()
+        return stat, p_value
