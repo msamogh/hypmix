@@ -98,28 +98,28 @@ class UniformDistributionUncalibrated(Hypothesis):
 
 
 @dataclass
-class MonotonicCalibratedAB(MonotonicUncalibrated):
+class MonotonicCalibratedB(MonotonicUncalibrated):
 
     def __str__(self):
         raise NotImplementedError
 
 
 @dataclass
-class MonotonicCalibratedEI(MonotonicUncalibrated):
+class MonotonicCalibratedI(MonotonicUncalibrated):
 
     def __str__(self):
         raise NotImplementedError
 
 
 @dataclass
-class UniformCalibratedDF(UniformDistributionUncalibrated):
+class UniformCalibratedF(UniformDistributionUncalibrated):
 
     def __str__(self):
         raise NotImplementedError
 
 
 @dataclass
-class UniformCalibratedGH(UniformDistributionUncalibrated):
+class UniformCalibratedH(UniformDistributionUncalibrated):
 
     def __str__(self):
         raise NotImplementedError

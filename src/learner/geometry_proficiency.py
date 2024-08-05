@@ -1,11 +1,10 @@
 from typing import *
 
+import config
 from environment.action_spaces import HOActionSpace
-from experiments.mdhyp import (
-    MonotonicUncalibrated,
-    UniformDistributionUncalibrated,
-)
-from .learners import TheoreticalModel, ComputationalModel, SingleHypothesisStack
+from experiments.mdhyp import MonotonicUncalibrated, UniformDistributionUncalibrated
+
+from .learners import ComputationalModel, SingleHypothesisStack, TheoreticalModel
 
 THEORETICAL_MODEL_DEFAULT = TheoreticalModel(
     construct_name="Geometry Proficiency",
@@ -21,13 +20,14 @@ COMPUTATIONAL_MODEL_DEFAULT = ComputationalModel(
 )
 
 
-def productive_measurement_monotonic_mdhyp_factory(
-    action_space: HOActionSpace,
+def proficiency_measure_monotonic(
+    hyp_class: Type[MonotonicUncalibrated],
+    action_space: HOActionSpace = config.ACTION_SPACE,
 ) -> SingleHypothesisStack:
     return SingleHypothesisStack(
         THEORETICAL_MODEL_DEFAULT,
         COMPUTATIONAL_MODEL_DEFAULT,
-        MonotonicUncalibrated(
+        hyp_class(
             behavior_name="productive_measurements_proficiency_increase",
             behavior_description="make productive measurements",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
@@ -38,13 +38,14 @@ def productive_measurement_monotonic_mdhyp_factory(
     )
 
 
-def productive_measurement_uniform_mdhyp_factory(
-    action_space: HOActionSpace,
+def proficiency_measure_uniform(
+    hyp_class: Type[UniformDistributionUncalibrated],
+    action_space: HOActionSpace = config.ACTION_SPACE,
 ) -> SingleHypothesisStack:
     return SingleHypothesisStack(
         THEORETICAL_MODEL_DEFAULT,
         COMPUTATIONAL_MODEL_DEFAULT,
-        UniformDistributionUncalibrated(
+        hyp_class(
             behavior_name="all_measurements_equally_likely",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
             behavior_actions=[

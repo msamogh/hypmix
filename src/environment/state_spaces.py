@@ -94,7 +94,7 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
     @staticmethod
     def generate_states(num_state_vars=10, std_dev=1) -> StateSweep:
         result_array = None
-        # Sample the sum S from a normal distribution
+        # Sample the total number of measurements made so far (S) from a normal distribution
         for mean in range(0, 11):
             S = int(np.random.normal(mean, std_dev))
             S = max(
@@ -104,8 +104,9 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
             # Calculate the probability p
             p = S / num_state_vars
 
-            # Generate binary variables
+            # Generate a random count vector that corresponds to number of measurements of *each type* so that it approximately sums up to S (binomial distribution with parameter S).
             if result_array is None:
+                # Initialize the state space as a 2D array
                 result_array = np.hstack(
                     (
                         np.tile([mean], (10, 1)),
@@ -113,6 +114,7 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
                     )
                 )
             else:
+                # Add a new state as a new row
                 result_array = np.vstack(
                     (
                         result_array,
@@ -124,7 +126,7 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
                         ),
                     )
                 )
-        # Apply generate_state_from_vector to each row of the result_array
+        # Generate state objects from row of the 2D result_array
         return StateSweep(
             state_space_name="binomial_prior",
             states=[
@@ -139,3 +141,10 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
             state_space_name="toy_state_space",
             states=state_sweep.states[start_idx : start_idx + num_samples],
         )
+
+    @staticmethod
+    def generate_uniform_state_space() -> StateSweep:
+        states = np.array(HOStateB.generate_states().states)[
+            [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        ]
+        return StateSweep(state_space_name="uniform_state_space", states=states)

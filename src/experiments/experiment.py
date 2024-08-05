@@ -35,7 +35,6 @@ class Vignette:
     learner: Learner
     state: State
     state_sweep_name: Text
-    action_space: ActionSpace
 
     @property
     def as_langsmith_sample(self):
@@ -60,7 +59,7 @@ class Vignette:
                 ),
                 "state": self.state.describe_state(),
                 "state_sweep_name": self.state_sweep_name,
-                "action_space": self.action_space.describe_action_space(),
+                "action_space": self.learner.action_space.describe_action_space(),
             },
             "outputs": {},
             # For filtering
@@ -72,7 +71,7 @@ class Vignette:
                     self.learner.geometry_proficiency_model
                 ),
                 "state_sweep_name": self.state_sweep_name,
-                "action_space_name": self.action_space.action_space_name,
+                "action_space_name": self.learner.action_space.action_space_name,
                 "persistence_level": self.learner.persistence_level,
                 "geometry_proficiency_level": self.learner.geometry_proficiency_level,
                 **self.state.__dict__,
@@ -255,6 +254,7 @@ class Experiment:
             Vignette(
                 experiment_id=self.experiment_id,
                 learner=Learner(
+                    action_space=action_space,
                     persistence_level=persistence_level,
                     geometry_proficiency_level=geometry_proficiency_level,
                     persistence_model=persistence_model,

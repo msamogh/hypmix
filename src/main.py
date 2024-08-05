@@ -1,159 +1,85 @@
 import random
 from typing import *
 
-random.seed(42)
+import numpy as np
+
+RANDOM_SEED = 42
+
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 
-from environment.action_spaces import HOActionSpaceB
-from environment.state_spaces import HOStateB
 from experiments.mdhyp import (
-    MonotonicCalibratedAB,
-    UniformCalibratedDF,
-    UniformCalibratedGH,
-    MonotonicCalibratedEI,
+    MonotonicUncalibrated,
+    UniformDistributionUncalibrated,
+    MonotonicCalibratedB,
+    UniformCalibratedF,
+    UniformCalibratedH,
+    MonotonicCalibratedI,
 )
 from learner.geometry_proficiency import (
-    productive_measurement_monotonic_mdhyp_factory,
-    productive_measurement_uniform_mdhyp_factory,
+    proficiency_measure_monotonic,
+    proficiency_measure_uniform,
 )
 from learner.learners import Learner
 from learner.persistence import (
-    abandoning_behavior_num_submissions_mdhyp_factory,
-    abandoning_behavior_time_elapsed_mdhyp_factory,
+    persist_abandon_num_submissions,
+    persist_abandon_time,
 )
 
+
+LEARNER_MODELS_TESTS = {
+    "A": (
+        Learner().add_hypothesis(proficiency_measure_monotonic(MonotonicUncalibrated)),
+        proficiency_measure_monotonic(MonotonicUncalibrated),
+    ),
+    "B": (
+        Learner().add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB)),
+        None,
+    ),
+    "C": (
+        Learner().add_hypothesis(persist_abandon_time(MonotonicCalibratedB)),
+        None,
+    ),
+    "D": (
+        Learner()
+        .add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB))
+        .add_hypothesis(proficiency_measure_uniform(UniformDistributionUncalibrated)),
+        None,
+    ),
+    "E": (
+        Learner().add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedB)),
+        None,
+    ),
+    "F": (
+        Learner()
+        .add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB))
+        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)),
+        None,
+    ),
+    "G": (
+        Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)),
+        None,
+    ),
+    "H": (
+        Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)),
+        None,
+    ),
+    "I": (
+        Learner().add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI)),
+        None,
+    ),
+    "J": (
+        Learner()
+        .add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI))
+        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)),
+        None,
+    ),
+}
+
 if __name__ == "__main__":
-    DATASET_NAME = "calibration-sprint-1"
-    STATE_SWEEP = HOStateB.generate_toy_state_space()
-
-    for action_space in [HOActionSpaceB()]:
-        HYPOTHESES = {
-            # H_A
-            "proficiency_vs_good_measurements": productive_measurement_monotonic_mdhyp_factory(
-                action_space=action_space
-            ),
-            # H_D
-            "unproficient_random_measurements": productive_measurement_uniform_mdhyp_factory(
-                action_space=action_space
-            ),
-            # H_B
-            "persistence_time": abandoning_behavior_time_elapsed_mdhyp_factory(
-                action_space=action_space
-            ),
-            # H_C
-            "persistence_num_submissions": abandoning_behavior_num_submissions_mdhyp_factory(
-                action_space=action_space
-            ),
-        }
-
-        A = Learner()
-
-        A = A.add_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
-        A_result = A.test_hypothesis(
-            HYPOTHESES["proficiency_vs_good_measurements"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            tgt_lc_value_range=(1, 10),
-            lc_key="geometry_proficiency_levels",
-            tgt_metric_key="productive_actions_ratio",
-        )
-
-        breakpoint()
-
-        # Add the calibrated hypothesis to the master HYPOTHESES map under the key "proficiency_vs_good_measurements_AB"
-        B, HYPOTHESES["proficiency_vs_good_measurements_AB"] = A.calibrate_hypothesis(
-            HYPOTHESES["proficiency_vs_good_measurements"],
-            MonotonicCalibratedAB,
-        )
-        breakpoint()
-        B_result = B.test_hypothesis(
-            HYPOTHESES["proficiency_vs_good_measurements_AB"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-        )
-
-        breakpoint()
-
-        C = A.remove_hypothesis(HYPOTHESES["proficiency_vs_good_measurements_AB"])
-
-        breakpoint()
-
-        C = C.add_hypothesis(HYPOTHESES["persistence_time"])
-        breakpoint()
-        C_result = C.test_hypothesis(
-            HYPOTHESES["persistence_time"], DATASET_NAME, action_space, STATE_SWEEP
-        )
-
-        breakpoint()
-
-        D = B.add_hypothesis(HYPOTHESES["unproficient_random_measurements"])
-
-        E = C.remove_hypothesis(HYPOTHESES["persistence_time"])
-        E = C.add_hypothesis(HYPOTHESES["persistence_num_submissions"])
-        E_result = E.test_hypothesis(
-            HYPOTHESES["persistence_num_submissions"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            fake_llm=True,
-        )
-
-        F, HYPOTHESES["unproficient_random_measurements_DF"] = D.calibrate_hypothesis(
-            HYPOTHESES["unproficient_random_measurements"],
-            UniformCalibratedDF,
-        )
-        F_result = F.test_hypothesis(
-            HYPOTHESES["proficiency_vs_good_measurements_AB"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            fake_llm=True,
-        )
-
-        G = F.remove_hypothesis(HYPOTHESES["proficiency_vs_good_measurements"])
-        G_result = G.test_hypothesis(
-            HYPOTHESES["unproficient_random_measurements"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            fake_llm=True,
-        )
-
-        if G_result:
-            H = G
-        else:
-            H, HYPOTHESES["unproficient_random_measurements_GH"] = (
-                G.calibrate_hypothesis(
-                    HYPOTHESES["unproficient_random_measurements"],
-                    UniformCalibratedGH,
-                )
-            )
-
-        if E_result:
-            I = E
-        else:
-            I, HYPOTHESES["persistence_num_submissions_EI"] = E.calibrate_hypothesis(
-                HYPOTHESES["persistence_num_submissions"],
-                MonotonicCalibratedEI,
-            )
-
-        J = Learner(
-            geometry_proficiency_model=H.geometry_proficiency_model,
-            persistence_model=I.persistence_model,
-        )
-        J_result_1 = J.test_hypothesis(
-            HYPOTHESES["persistence_num_submissions"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            fake_llm=True,
-        )
-        J_result_2 = J.test_hypothesis(
-            HYPOTHESES["unproficient_random_measurements"],
-            DATASET_NAME,
-            action_space,
-            STATE_SWEEP,
-            fake_llm=True,
-        )
+    TGT_HYP = "A"
+    result = LEARNER_MODELS_TESTS[TGT_HYP][0].test_hypothesis(
+        LEARNER_MODELS_TESTS[TGT_HYP][1]
+    )
+    print(result)

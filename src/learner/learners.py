@@ -12,6 +12,8 @@ from environment.action_spaces import ActionSpace
 from environment.state_spaces import StateSweep
 from experiments.mdhyp import Hypothesis, MonotonicUncalibrated
 
+import config
+
 
 class ModelType(Enum):
     THEOR = "theor"
@@ -95,6 +97,7 @@ class LearnerCharacteristicModel:
 class Learner:
     """Data class for a learner."""
 
+    action_space: ActionSpace = config.ACTION_SPACE
     persistence_model: Optional[LearnerCharacteristicModel] = None
     geometry_proficiency_model: Optional[LearnerCharacteristicModel] = None
     persistence_level: Optional[int] = None
@@ -223,14 +226,7 @@ class Learner:
                     + tgt_model_hypotheses[hyp_idx + 1 :]
                 )
                 # Also return the new, calibrated hypothesis.
-                return (
-                    copy.deepcopy(self),
-                    SingleHypothesisStack(
-                        hyp_stack.theoretical_model,
-                        hyp_stack.computational_model,
-                        calibrated_hyp,
-                    ),
-                )
+                return copy.deepcopy(self)
 
         # If target_hypothesis is not found in the learner model, throw an error.
         raise ValueError(
@@ -261,9 +257,8 @@ class Learner:
     def test_hypothesis(
         self,
         tgt_hyp_stack: SingleHypothesisStack,
-        dataset_name: Text,
-        action_space: ActionSpace,
-        state_sweep: StateSweep,
+        dataset_name: Text = config.DATASET_NAME,
+        state_sweep: StateSweep = config.STATE_SWEEP,
         tgt_lc_value_range: Tuple[int, int] = (1, 11),
         fake_llm: bool = False,
         prompt_name: str = "amogh-ld/sl-calibration-1",
@@ -302,7 +297,7 @@ class Learner:
                 geometry_proficiency_levels=[gp_level],
                 persistence_levels=[persistence_level],
                 state_sweep=state_sweep,
-                action_space=action_space,
+                action_space=self.action_space,
                 model_name=llm_name,
                 temperature=llm_temperature,
             )

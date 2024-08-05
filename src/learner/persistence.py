@@ -1,12 +1,19 @@
 from typing import *
 
+import config
 from environment.action_spaces import HOActionSpace
 from experiments.mdhyp import Hypothesis, MonotonicUncalibrated
-from .learners import TheoreticalModel, ComputationalModel, SingleHypothesisStack
+
+from .learners import ComputationalModel, SingleHypothesisStack, TheoreticalModel
 
 THEORETICAL_MODEL_DEFAULT = TheoreticalModel(
     construct_name="Persistence",
     definition="Keeping at a task and finishing it despite the obstacles or the effort involved.",
+)
+
+THEORETICAL_MODEL_INVITE = TheoreticalModel(
+    construct_name="Persistence",
+    definition="Maintaining a sustained effort toward completion of a goal-directed task despite challenges or difficulties",
 )
 
 COMPUTATIONAL_MODEL_NUM_SUBMISSIONS = ComputationalModel(
@@ -30,13 +37,14 @@ COMPUTATIONAL_MODEL_TIME_ELAPSED = ComputationalModel(
 )
 
 
-def abandoning_behavior_num_submissions_mdhyp_factory(
-    action_space: HOActionSpace,
+def persist_abandon_num_submissions(
+    hyp_class: Type[MonotonicUncalibrated],
+    action_space: HOActionSpace = config.ACTION_SPACE,
 ) -> SingleHypothesisStack:
     return SingleHypothesisStack(
         THEORETICAL_MODEL_DEFAULT,
         COMPUTATIONAL_MODEL_NUM_SUBMISSIONS,
-        MonotonicUncalibrated(
+        hyp_class(
             behavior_name="task_abandon_num_submissions_increase",
             behavior_description="abandon the task as the number of submissions increases",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
@@ -47,13 +55,14 @@ def abandoning_behavior_num_submissions_mdhyp_factory(
     )
 
 
-def abandoning_behavior_time_elapsed_mdhyp_factory(
-    action_space: HOActionSpace,
+def persist_abandon_time(
+    hyp_class: Type[MonotonicUncalibrated],
+    action_space: HOActionSpace = config.ACTION_SPACE,
 ) -> SingleHypothesisStack:
     return SingleHypothesisStack(
         THEORETICAL_MODEL_DEFAULT,
         COMPUTATIONAL_MODEL_TIME_ELAPSED,
-        MonotonicUncalibrated(
+        hyp_class(
             behavior_name="task_abandon_time_increase",
             behavior_description="abandon the task as the time elapsed increases",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
