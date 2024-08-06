@@ -2,7 +2,7 @@ import copy
 import random
 
 random.seed(42)
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import *
 
@@ -97,7 +97,7 @@ class LearnerCharacteristicModel:
 class Learner:
     """Data class for a learner."""
 
-    action_space: ActionSpace = config.ACTION_SPACE
+    action_space: ActionSpace = field(default_factory=lambda: config.ACTION_SPACE)
     persistence_model: Optional[LearnerCharacteristicModel] = None
     geometry_proficiency_model: Optional[LearnerCharacteristicModel] = None
     persistence_level: Optional[int] = None
@@ -193,75 +193,14 @@ class Learner:
 
         return copy.deepcopy(self)
 
-    def calibrate_hypothesis(
-        self,
-        hyp_stack: SingleHypothesisStack,
-        calibrated_hyp_class: Type[Hypothesis],
-    ):
-        """Replace an uncalibrated hypothesis in the learner model with its calibrated equivalent.
-
-        Note that this model assumes that the developer is passing in a calibrated calibrated_hyp_class. So it does not do the job of verifying whether the calibrated_hyp_class is calibrated.
-        """
-        hypothesis = hyp_stack.hypothesis
-        # Locate the target hypothesis in the learner model.
-        tgt_behavioral_model = self._find_behavioral_model(
-            hypothesis.learner_characteristic
-        )
-        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
-
-        # Replace existing hypothesis from the learner characteristic's BehaviorModel with  the calibrated hypothesis.
-        for hyp_idx in range(len(tgt_model_hypotheses)):
-            if tgt_model_hypotheses[hyp_idx].behavior_name == hypothesis.behavior_name:
-                calibrated_hyp = calibrated_hyp_class(
-                    behavior_name=hypothesis.behavior_name,
-                    learner_characteristic=hypothesis.learner_characteristic,
-                    behavior_description=hypothesis.behavior_description,
-                    behavior_long_description=hypothesis.behavior_long_description,
-                    behavior_actions=hypothesis.behavior_actions,
-                    positive_relationship=hypothesis.positive_relationship,
-                )
-                tgt_behavioral_model.hypotheses = (
-                    tgt_model_hypotheses[:hyp_idx]
-                    + [calibrated_hyp]
-                    + tgt_model_hypotheses[hyp_idx + 1 :]
-                )
-                # Also return the new, calibrated hypothesis.
-                return copy.deepcopy(self)
-
-        # If target_hypothesis is not found in the learner model, throw an error.
-        raise ValueError(
-            f"No existing hypothesis found for {hypothesis.behavior_name}."
-        )
-
-    def remove_hypothesis(self, hyp_stack: SingleHypothesisStack):
-        """Remove an existing hypothesis from the learner model."""
-        hypothesis = hyp_stack.hypothesis
-        tgt_behavioral_model = self._find_behavioral_model(
-            hypothesis.learner_characteristic
-        )
-        tgt_model_hypotheses = tgt_behavioral_model.hypotheses
-
-        # Remove existing hypothesis from the learner characteristic's BehaviorModel
-        for hyp_idx in range(len(tgt_model_hypotheses)):
-            if tgt_model_hypotheses[hyp_idx].behavior_name == hypothesis.behavior_name:
-                tgt_behavioral_model.hypotheses = (
-                    tgt_model_hypotheses[:hyp_idx] + tgt_model_hypotheses[hyp_idx + 1 :]
-                )
-                return copy.deepcopy(self)
-
-        # If target_hypothesis is not found in the learner model, throw an error.
-        raise ValueError(
-            f"No existing hypothesis found for {hypothesis.behavior_name}."
-        )
-
     def test_hypothesis(
         self,
         tgt_hyp_stack: SingleHypothesisStack,
         dataset_name: Text = config.DATASET_NAME,
-        state_sweep: StateSweep = config.STATE_SWEEP,
-        tgt_lc_value_range: Tuple[int, int] = (1, 11),
+        state_sweep_override: Optional[StateSweep] = None,
+        tgt_lc_value_range_override: Tuple[int, int] = None,
         fake_llm: bool = False,
-        prompt_name: str = "amogh-ld/sl-calibration-1",
+        prompt_name: str = "msamogh/sl-calibration-1",
         llm_name: Text = "gpt-4-turbo",
         llm_temperature: float = 0.9,
         **stat_test_kwargs,
@@ -279,6 +218,17 @@ class Learner:
         assert (
             tgt_hypothesis in tgt_behavioral_model.hypotheses
         ), f"{tgt_hypothesis} not found in learner model!"
+
+        state_sweep = (
+            tgt_hypothesis.state_sweep
+            if state_sweep_override is None
+            else state_sweep_override
+        )
+        tgt_lc_value_range = (
+            tgt_hypothesis.tgt_lc_value_range
+            if tgt_lc_value_range_override is None
+            else tgt_lc_value_range_override
+        )
 
         experiment_outputs = dict()
         # Sweep over different values of the learner characteristic of the target hypothesis.

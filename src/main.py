@@ -10,23 +10,19 @@ random.seed(RANDOM_SEED)
 
 
 from experiments.mdhyp import (
-    MonotonicUncalibrated,
-    UniformDistributionUncalibrated,
     MonotonicCalibratedB,
+    MonotonicCalibratedI,
+    MonotonicUncalibrated,
     UniformCalibratedF,
     UniformCalibratedH,
-    MonotonicCalibratedI,
+    UniformDistributionUncalibrated,
 )
 from learner.geometry_proficiency import (
     proficiency_measure_monotonic,
     proficiency_measure_uniform,
 )
 from learner.learners import Learner
-from learner.persistence import (
-    persist_abandon_num_submissions,
-    persist_abandon_time,
-)
-
+from learner.persistence import persist_abandon_num_submissions, persist_abandon_time
 
 LEARNER_MODELS_TESTS = {
     "A": (
@@ -35,11 +31,15 @@ LEARNER_MODELS_TESTS = {
     ),
     "B": (
         Learner().add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB)),
-        None,
+        proficiency_measure_monotonic(MonotonicCalibratedB),
     ),
     "C": (
         Learner().add_hypothesis(persist_abandon_time(MonotonicCalibratedB)),
-        None,
+        persist_abandon_time(MonotonicCalibratedB),
+    ),
+    "C_test_1": (
+        Learner().add_hypothesis(persist_abandon_time(MonotonicUncalibrated)),
+        persist_abandon_time(MonotonicUncalibrated),
     ),
     "D": (
         Learner()
@@ -49,17 +49,17 @@ LEARNER_MODELS_TESTS = {
     ),
     "E": (
         Learner().add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedB)),
-        None,
+        persist_abandon_num_submissions(MonotonicCalibratedB),
     ),
     "F": (
         Learner()
         .add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB))
         .add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)),
-        None,
+        proficiency_measure_uniform(UniformCalibratedF),
     ),
     "G": (
         Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)),
-        None,
+        proficiency_measure_uniform(UniformCalibratedF),
     ),
     "H": (
         Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)),
@@ -69,17 +69,23 @@ LEARNER_MODELS_TESTS = {
         Learner().add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI)),
         None,
     ),
-    "J": (
+    "J1": (
         Learner()
         .add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI))
         .add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)),
-        None,
+        persist_abandon_num_submissions(MonotonicCalibratedI),
+    ),
+    "J2": (
+        Learner()
+        .add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI))
+        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)),
+        proficiency_measure_uniform(UniformCalibratedH),
     ),
 }
 
 if __name__ == "__main__":
-    TGT_HYP = "A"
+    TGT_HYP = "G"
     result = LEARNER_MODELS_TESTS[TGT_HYP][0].test_hypothesis(
         LEARNER_MODELS_TESTS[TGT_HYP][1]
     )
-    print(result)
+    print(f"Result: {result}")

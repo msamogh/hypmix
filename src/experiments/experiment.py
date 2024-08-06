@@ -1,6 +1,7 @@
 import itertools
 import os
 import random
+import time
 from dataclasses import dataclass, field
 from functools import partial
 from typing import *
@@ -14,17 +15,16 @@ from langchain_community.llms.fake import FakeListLLM
 from langchain_core.messages import AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
-from langsmith import Client, traceable
+from langsmith import Client
 from langsmith.evaluation import evaluate, evaluate_existing
 from langsmith.schemas import Example, Run
-from langsmith.wrappers import wrap_openai
 
 load_dotenv(".env.secret")
 load_dotenv(".env")
 
-from environment.action_spaces import ActionSpace, HOActionSpaceB
-from environment.state_spaces import HOStateA, State, StateSweep
-from learner.learners import Learner, LearnerCharacteristicModel, ModelType
+from environment.action_spaces import ActionSpace
+from environment.state_spaces import State, StateSweep
+from learner.learners import Learner, LearnerCharacteristicModel
 
 
 @dataclass
@@ -141,13 +141,10 @@ class Experiment:
             action_space: "ActionSpace", message: "AIMessage"
         ) -> Text:
             for action in action_space.actions.keys():
-                base_action = action.split("(")[
-                    0
-                ]  # Get the base action before any parameters
                 if isinstance(message, str):
-                    if base_action in message:
+                    if action in message:
                         return action
-                elif base_action in message.content:
+                elif action in message.content:
                     return action
             return "UNPREDICTED"
 
@@ -188,8 +185,8 @@ class Experiment:
                 if run.outputs is None:
                     continue
                 if run.outputs["output"] == action_label:
-                    print(run.outputs["output"])
                     action_count += 1
+            print(f"{action_label.lower()}_percentage = {action_count / len(runs)}")
             return {
                 "key": f"{action_label.lower()}_percentage",
                 "score": action_count / len(runs),
@@ -206,6 +203,7 @@ class Experiment:
                 action_space.unproductive_measurement_percentage,
             ],
         )
+
         return {
             result.key: result.score for result in results._summary_results["results"]
         }
@@ -254,7 +252,6 @@ class Experiment:
             Vignette(
                 experiment_id=self.experiment_id,
                 learner=Learner(
-                    action_space=action_space,
                     persistence_level=persistence_level,
                     geometry_proficiency_level=geometry_proficiency_level,
                     persistence_model=persistence_model,
@@ -262,7 +259,6 @@ class Experiment:
                 ),
                 state_sweep_name=state_sweep_name,
                 state=state,
-                action_space=action_space,
             )
             for persistence_model, geometry_proficiency_model, persistence_level, geometry_proficiency_level, state, state_sweep_name, action_space in itertools.product(
                 *self.experiment_dict.values()
@@ -287,4 +283,5 @@ class Experiment:
             num_generations_per_sample=num_generations_per_sample,
             fake_llm=fake_llm,
         ).experiment_name
+        time.sleep(1)
         return self._log_next_action_distribution(experiment_name, self.action_space)

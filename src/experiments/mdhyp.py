@@ -2,19 +2,35 @@ from dataclasses import dataclass, field
 from typing import *
 from typing import Tuple
 
+import config
+from environment.action_spaces import ActionSpace
+from environment.state_spaces import StateSweep
+
 
 @dataclass
 class Hypothesis:
 
     behavior_name: str
     learner_characteristic: str
+    action_space: ActionSpace
+    stat_test_kwargs: Dict[Text, Any]
+
+    @property
+    def state_sweep(self):
+        raise NotImplementedError
+
+    @property
+    def is_multi_run_hyp(self):
+        raise NotImplementedError
+
+    @property
+    def tgt_lc_value_range(self):
+        raise NotImplementedError
 
     def __str__(self):
         raise NotImplementedError
 
-    def statistical_test(
-        self, experiment_set_results, **stat_test_kwargs
-    ) -> Tuple[float, float]:
+    def statistical_test(self, experiment_set_results) -> Tuple[float, float]:
         """Returns a statistic and a p-value."""
         raise NotImplementedError
 
@@ -28,6 +44,18 @@ class MonotonicUncalibrated(Hypothesis):
     behavior_actions: List[str]
     positive_relationship: bool
 
+    @property
+    def state_sweep(self):
+        return config.STATE_SWEEP_SMALL
+
+    @property
+    def is_multi_run_hyp(self):
+        return True
+
+    @property
+    def tgt_lc_value_range(self):
+        return (1, 11)
+
     def __str__(self):
 
         def actions_list_str():
@@ -38,13 +66,11 @@ class MonotonicUncalibrated(Hypothesis):
         else:
             return f"A learner with a higher {self.learner_characteristic.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {actions_list_str()}."
 
-    def statistical_test(self, experiment_set_results, **stat_test_kwargs):
+    def statistical_test(self, experiment_set_results):
         from scipy.stats import spearmanr
 
-        lc_key = stat_test_kwargs.get("lc_key", "geometry_proficiency_levels")
-        tgt_action_label_key = stat_test_kwargs.get(
-            "tgt_metric_key", "productive_actions_ratio"
-        )
+        lc_key = self.stat_test_kwargs["lc_key"]
+        tgt_action_label_key = self.stat_test_kwargs["tgt_metric_key"]
 
         x = []
         y = []
@@ -70,20 +96,32 @@ class UniformDistributionUncalibrated(Hypothesis):
     behavior_actions: List[str]
     low_or_high: str
 
+    @property
+    def state_sweep(self):
+        return config.STATE_SWEEP_MED
+
+    @property
+    def is_multi_run_hyp(self):
+        return False
+
+    @property
+    def tgt_lc_value_range(self):
+        return (1, 2)
+
     def __post_init__(self):
         assert self.low_or_high in ["low", "high"]
 
     def __str__(self):
 
-        def actions_list_str():
+        def behavior_actions_list_str():
             return ", ".join([f"'{action}'" for action in self.behavior_actions])
 
-        return f"As learners get closer and closer to the {self.low_or_high}er end of the {self.learner_characteristic.lower()} spectrum (value of {1 if self.low_or_high == 'low' else 'high'}) are equally likely to perform the following actions. In other words, such a learner exhibits a uniform distribution over these actions: {actions_list_str()}"
+        return f"As learners get closer and closer to the {self.low_or_high}er end of the {self.learner_characteristic.lower()} spectrum (value of {1 if self.low_or_high == 'low' else 'high'}) are equally likely to perform the following actions. In other words, such a learner exhibits a uniform distribution over these actions: {behavior_actions_list_str()}"
 
-    def statistical_test(self, experiment_set_results, **stat_test_kwargs):
+    def statistical_test(self, experiment_set_results):
         from scipy.stats import chisquare
 
-        tgt_action_labels = stat_test_kwargs.get("tgt_action_labels", None)
+        tgt_action_labels = self.behavior_actions
 
         assert (
             len(experiment_set_results) == 1
@@ -92,7 +130,10 @@ class UniformDistributionUncalibrated(Hypothesis):
         # Dummy loop (since there is only one iteration anyway)
         for experiment_results in experiment_set_results.values():
             return chisquare(
-                [experiment_results[action_label] for action_label in tgt_action_labels]
+                [
+                    experiment_results[f"{action_label.lower()}_percentage"]
+                    for action_label in tgt_action_labels
+                ]
             )
         raise RuntimeError("Uniform distribution could not be tested.")
 
@@ -101,7 +142,14 @@ class UniformDistributionUncalibrated(Hypothesis):
 class MonotonicCalibratedB(MonotonicUncalibrated):
 
     def __str__(self):
-        raise NotImplementedError
+
+        def behavior_actions_list_str():
+            return ", ".join([f"'{action}'" for action in self.behavior_actions])
+
+        if self.positive_relationship:
+            return f"We know from research that learners with higher {self.learner_characteristic.lower()} level are SLIGHTLY more likely to choose among the following actions than learners with low {self.learner_characteristic.lower()}: {behavior_actions_list_str()}. We see a gradual increase in the probability of choosing these actions as {self.learner_characteristic.lower()} increases from 1 to 10. Learners with score 1, 2 will have VERY LOW probability, 3, 4 somewhat LOW, 5 somewhere in between, 7, 8 somewhat high and 9, 10 very high."
+        else:
+            return f"We know from research that learners with higher {self.learner_characteristic.lower()} level are SLIGHTLY less likely to choose among the following actions than learners with low {self.learner_characteristic.lower()}: {behavior_actions_list_str()}. We see a gradual decrease in the probability of choosing these actions as {self.learner_characteristic.lower()} increases from 1 to 10. Learners with score 1, 2 will have VERY HIGH probability, 3, 4 somewhat HIGH, 5 somewhere in between, 7, 8 somewhat low and 9, 10 very low."
 
 
 @dataclass
@@ -115,7 +163,11 @@ class MonotonicCalibratedI(MonotonicUncalibrated):
 class UniformCalibratedF(UniformDistributionUncalibrated):
 
     def __str__(self):
-        raise NotImplementedError
+
+        def behavior_actions_list_str():
+            return ", ".join([f"'{action}'" for action in self.behavior_actions])
+
+        return f"We know from research that learners with {self.learner_characteristic.lower()} of 1 are known to mindlessly pick a random action from the following set of actions: {behavior_actions_list_str()}"
 
 
 @dataclass

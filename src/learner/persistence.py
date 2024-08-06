@@ -46,8 +46,13 @@ def persist_abandon_num_submissions(
         COMPUTATIONAL_MODEL_NUM_SUBMISSIONS,
         hyp_class(
             behavior_name="task_abandon_num_submissions_increase",
-            behavior_description="abandon the task as the number of submissions increases",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
+            action_space=action_space,
+            stat_test_kwargs={
+                "lc_key": "persistence_levels",
+                "tgt_metric_key": "quit_percentage",
+            },
+            behavior_description="abandon the task as the number of submissions increases",
             behavior_long_description="to prematurely exit the session before submitting the right solution",
             behavior_actions=[action_space.exit_action_label],
             positive_relationship=False,
@@ -64,8 +69,13 @@ def persist_abandon_time(
         COMPUTATIONAL_MODEL_TIME_ELAPSED,
         hyp_class(
             behavior_name="task_abandon_time_increase",
-            behavior_description="abandon the task as the time elapsed increases",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
+            action_space=action_space,
+            stat_test_kwargs={
+                "lc_key": "persistence_levels",
+                "tgt_metric_key": "quit_percentage",
+            },
+            behavior_description="abandon the task as the time elapsed increases",
             behavior_long_description="to prematurely exit the session before submitting the right solution",
             behavior_actions=[action_space.exit_action_label],
             positive_relationship=False,

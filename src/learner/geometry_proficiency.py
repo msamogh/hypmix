@@ -29,8 +29,13 @@ def proficiency_measure_monotonic(
         COMPUTATIONAL_MODEL_DEFAULT,
         hyp_class(
             behavior_name="productive_measurements_proficiency_increase",
-            behavior_description="make productive measurements",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
+            action_space=action_space,
+            stat_test_kwargs={
+                "lc_key": "geometry_proficiency_levels",
+                "tgt_metric_key": "productive_actions_ratio",
+            },
+            behavior_description="make productive measurements",
             behavior_long_description="those that measure distances between pairs of points in the planetary system that are potentially useful to verify if the orbit is elliptical",
             behavior_actions=action_space.productive_action_labels,
             positive_relationship=True,
@@ -48,6 +53,8 @@ def proficiency_measure_uniform(
         hyp_class(
             behavior_name="all_measurements_equally_likely",
             learner_characteristic=THEORETICAL_MODEL_DEFAULT.construct_name,
+            action_space=action_space,
+            stat_test_kwargs={},
             behavior_actions=[
                 action
                 for action in action_space.actions.keys()

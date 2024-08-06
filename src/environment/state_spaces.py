@@ -143,8 +143,37 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
         )
 
     @staticmethod
-    def generate_uniform_state_space() -> StateSweep:
-        states = np.array(HOStateB.generate_states().states)[
-            [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        ]
-        return StateSweep(state_space_name="uniform_state_space", states=states)
+    def generate_uniform_state_space(size: str = "small") -> StateSweep:
+        if size == "small":
+            states = np.array(HOStateB.generate_states().states)[
+                [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+            ]
+        elif size == "medium":
+            states = np.array(HOStateB.generate_states().states)[
+                [
+                    0,
+                    5,
+                    10,
+                    15,
+                    20,
+                    25,
+                    30,
+                    35,
+                    40,
+                    45,
+                    50,
+                    55,
+                    60,
+                    65,
+                    70,
+                    75,
+                    80,
+                    85,
+                    90,
+                    95,
+                    100,
+                ]
+            ]
+        else:
+            raise ValueError
+        return StateSweep(state_space_name=f"uniform_state_space_{size}", states=states)
