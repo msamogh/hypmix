@@ -200,9 +200,9 @@ class Learner:
         state_sweep_override: Optional[StateSweep] = None,
         tgt_lc_value_range_override: Tuple[int, int] = None,
         fake_llm: bool = False,
-        prompt_name: str = "msamogh/sl-calibration-1",
+        prompt_name: str = "hebeya/sl-calibration-1",
         llm_name: Text = "gpt-4-turbo",
-        llm_temperature: float = 0.9,
+        llm_temperature: float = 0.05,
         **stat_test_kwargs,
     ):
         """Test whether the target hypothesis is satisfied."""

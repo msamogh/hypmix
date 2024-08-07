@@ -41,21 +41,27 @@ class Vignette:
         return {
             # For the prompt template
             "inputs": {
-                "persistence_model": str(self.learner.persistence_model),
-                "geometry_proficiency_model": str(
-                    self.learner.geometry_proficiency_model
-                ),
                 "persistence_level": self.learner.persistence_level,
+                "persistence_level_str": (
+                    f"Your persistence is {self.learner.persistence_level}/10"
+                    if self.learner.persistence_model
+                    else ""
+                ),
                 "geometry_proficiency_level": self.learner.geometry_proficiency_level,
+                "geometry_proficiency_level_str": (
+                    f"Your geometry proficiency is {self.learner.geometry_proficiency_level}/10"
+                    if self.learner.geometry_proficiency_level
+                    else ""
+                ),
                 "persistence_model": (
                     self.learner.persistence_model.describe()
                     if self.learner.persistence_model
-                    else None
+                    else ""
                 ),
                 "geometry_proficiency_model": (
                     self.learner.geometry_proficiency_model.describe()
                     if self.learner.geometry_proficiency_model
-                    else None
+                    else ""
                 ),
                 "state": self.state.describe_state(),
                 "state_sweep_name": self.state_sweep_name,
@@ -283,5 +289,5 @@ class Experiment:
             num_generations_per_sample=num_generations_per_sample,
             fake_llm=fake_llm,
         ).experiment_name
-        time.sleep(1)
+        time.sleep(2)
         return self._log_next_action_distribution(experiment_name, self.action_space)
