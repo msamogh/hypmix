@@ -97,7 +97,7 @@ class LearnerCharacteristicModel:
 class Learner:
     """Data class for a learner."""
 
-    action_space: ActionSpace = field(default_factory=lambda: config.ACTION_SPACE)
+    action_space: ActionSpace
     persistence_model: Optional[LearnerCharacteristicModel] = None
     geometry_proficiency_model: Optional[LearnerCharacteristicModel] = None
     persistence_level: Optional[int] = None

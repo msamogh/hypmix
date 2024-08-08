@@ -258,6 +258,7 @@ class Experiment:
             Vignette(
                 experiment_id=self.experiment_id,
                 learner=Learner(
+                    action_space=self.action_space,
                     persistence_level=persistence_level,
                     geometry_proficiency_level=geometry_proficiency_level,
                     persistence_model=persistence_model,

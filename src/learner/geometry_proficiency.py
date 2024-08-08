@@ -22,7 +22,7 @@ COMPUTATIONAL_MODEL_DEFAULT = ComputationalModel(
 
 def proficiency_measure_monotonic(
     hyp_class: Type[MonotonicUncalibrated],
-    action_space: HOActionSpace = config.ACTION_SPACE,
+    action_space: HOActionSpace,
 ) -> SingleHypothesisStack:
     return [
         SingleHypothesisStack(
@@ -47,7 +47,7 @@ def proficiency_measure_monotonic(
 
 def proficiency_measure_uniform(
     hyp_class: Type[UniformDistributionUncalibrated],
-    action_space: HOActionSpace = config.ACTION_SPACE,
+    action_space: HOActionSpace,
 ) -> SingleHypothesisStack:
     return [
         SingleHypothesisStack(

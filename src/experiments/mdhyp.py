@@ -46,7 +46,7 @@ class MonotonicUncalibrated(Hypothesis):
 
     @property
     def state_sweep(self):
-        return config.STATE_SWEEP_SMALL
+        return config.STATE_SWEEP_MED
 
     @property
     def is_multi_run_hyp(self):

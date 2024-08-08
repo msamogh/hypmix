@@ -39,7 +39,7 @@ COMPUTATIONAL_MODEL_TIME_ELAPSED = ComputationalModel(
 
 def persist_abandon_num_submissions(
     hyp_class: Type[MonotonicUncalibrated],
-    action_space: HOActionSpace = config.ACTION_SPACE,
+    action_space: HOActionSpace,
 ) -> list[SingleHypothesisStack]:
     return [
         SingleHypothesisStack(
@@ -81,7 +81,7 @@ def persist_abandon_num_submissions(
 
 def persist_abandon_time(
     hyp_class: Type[MonotonicUncalibrated],
-    action_space: HOActionSpace = config.ACTION_SPACE,
+    action_space: HOActionSpace,
 ) -> SingleHypothesisStack:
     return [
         SingleHypothesisStack(

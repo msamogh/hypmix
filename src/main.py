@@ -9,96 +9,141 @@ np.random.seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 
 import config
-from environment.action_spaces import HOActionSpaceB, HOActionSpaceC, HOActionSpaceD
-from experiments.mdhyp import (
-    MonotonicCalibratedB,
-    MonotonicCalibratedI,
-    MonotonicUncalibrated,
-    UniformCalibratedF,
-    UniformCalibratedH,
-    UniformDistributionUncalibrated,
-)
-from learner.geometry_proficiency import (
-    proficiency_measure_monotonic,
-    proficiency_measure_uniform,
-)
-from learner.learners import Learner
-from learner.persistence import persist_abandon_num_submissions, persist_abandon_time
 
-LEARNER_MODELS_TESTS = {
-    "A": (
-        Learner().add_hypothesis(
-            proficiency_measure_monotonic(MonotonicUncalibrated)[0]
+
+def main(action_space, tgt_hyp):
+    from experiments.mdhyp import (
+        MonotonicCalibratedB,
+        MonotonicCalibratedI,
+        MonotonicUncalibrated,
+        UniformCalibratedF,
+        UniformCalibratedH,
+        UniformDistributionUncalibrated,
+    )
+    from learner.geometry_proficiency import (
+        proficiency_measure_monotonic,
+        proficiency_measure_uniform,
+    )
+    from learner.learners import Learner
+    from learner.persistence import (
+        persist_abandon_num_submissions,
+        persist_abandon_time,
+    )
+
+    LEARNER_MODELS_TESTS = {
+        "A": (
+            Learner(action_space).add_hypothesis(
+                proficiency_measure_monotonic(MonotonicUncalibrated, action_space)[0]
+            ),
+            proficiency_measure_monotonic(MonotonicUncalibrated, action_space)[0],
         ),
-        proficiency_measure_monotonic(MonotonicUncalibrated)[0],
-    ),
-    "B": (
-        Learner().add_hypothesis(
-            proficiency_measure_monotonic(MonotonicCalibratedB)[0]
+        "B": (
+            Learner(action_space).add_hypothesis(
+                proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0]
+            ),
+            proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0],
         ),
-        proficiency_measure_monotonic(MonotonicCalibratedB)[0],
-    ),
-    "C": (
-        Learner().add_hypothesis(persist_abandon_time(MonotonicCalibratedB)[0]),
-        persist_abandon_time(MonotonicCalibratedB)[0],
-    ),
-    "C_test_1": (
-        Learner().add_hypothesis(persist_abandon_time(MonotonicUncalibrated)[0]),
-        persist_abandon_time(MonotonicUncalibrated)[0],
-    ),
-    "C2": (),
-    "D": (
-        Learner()
-        .add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB)[0])
-        .add_hypothesis(
-            proficiency_measure_uniform(UniformDistributionUncalibrated)[0]
+        "C": (
+            Learner(action_space).add_hypothesis(
+                persist_abandon_time(MonotonicCalibratedB, action_space)[0]
+            ),
+            persist_abandon_time(MonotonicCalibratedB, action_space)[0],
         ),
-        None,
-    ),
-    "E": (
-        Learner().add_hypothesis(
-            persist_abandon_num_submissions(MonotonicCalibratedB)[0]
+        "C_test_1": (
+            Learner(action_space).add_hypothesis(
+                persist_abandon_time(MonotonicUncalibrated, action_space)[0]
+            ),
+            persist_abandon_time(MonotonicUncalibrated, action_space)[0],
         ),
-        persist_abandon_num_submissions(MonotonicCalibratedB)[0],
-    ),
-    "E2": (),
-    "F": (
-        Learner()
-        .add_hypothesis(proficiency_measure_monotonic(MonotonicCalibratedB)[0])
-        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)[0]),
-        proficiency_measure_monotonic(MonotonicCalibratedB)[0],
-    ),
-    "G": (
-        Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedF)[0]),
-        proficiency_measure_uniform(UniformCalibratedF)[0],
-    ),
-    "H": (
-        Learner().add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)[0]),
-        None,
-    ),
-    "I": (
-        Learner().add_hypothesis(
-            persist_abandon_num_submissions(MonotonicCalibratedI)[0]
+        "C2": (),
+        "D": (
+            Learner(action_space)
+            .add_hypothesis(
+                proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0]
+            )
+            .add_hypothesis(
+                proficiency_measure_uniform(
+                    UniformDistributionUncalibrated, action_space
+                )[0]
+            ),
+            None,
         ),
-        None,
-    ),
-    "J1": (
-        Learner()
-        .add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI)[0])
-        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)[0]),
-        persist_abandon_num_submissions(MonotonicCalibratedI)[0],
-    ),
-    "J2": (
-        Learner()
-        .add_hypothesis(persist_abandon_num_submissions(MonotonicCalibratedI)[0])
-        .add_hypothesis(proficiency_measure_uniform(UniformCalibratedH)[0]),
-        proficiency_measure_uniform(UniformCalibratedH)[0],
-    ),
-}
+        "E": (
+            Learner(action_space).add_hypothesis(
+                persist_abandon_num_submissions(MonotonicCalibratedB, action_space)[0]
+            ),
+            persist_abandon_num_submissions(MonotonicCalibratedB, action_space)[0],
+        ),
+        "E2": (),
+        "F": (
+            Learner(action_space)
+            .add_hypothesis(
+                proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0]
+            )
+            .add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedF, action_space)[0]
+            ),
+            proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0],
+        ),
+        "G": (
+            Learner(action_space).add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedF, action_space)[0]
+            ),
+            proficiency_measure_uniform(UniformCalibratedF, action_space)[0],
+        ),
+        "H": (
+            Learner(action_space).add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedH, action_space)[0]
+            ),
+            None,
+        ),
+        "I": (
+            Learner(action_space).add_hypothesis(
+                persist_abandon_num_submissions(MonotonicCalibratedI, action_space)[0]
+            ),
+            None,
+        ),
+        "J1": (
+            Learner(action_space)
+            .add_hypothesis(
+                persist_abandon_num_submissions(MonotonicCalibratedI, action_space)[0]
+            )
+            .add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedH, action_space)[0]
+            ),
+            persist_abandon_num_submissions(MonotonicCalibratedI, action_space)[0],
+        ),
+        "J2": (
+            Learner(action_space)
+            .add_hypothesis(
+                persist_abandon_num_submissions(MonotonicCalibratedI, action_space)[0]
+            )
+            .add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedH, action_space)[0]
+            ),
+            proficiency_measure_uniform(UniformCalibratedH, action_space)[0],
+        ),
+    }
+
+    result = LEARNER_MODELS_TESTS[tgt_hyp][0].test_hypothesis(
+        LEARNER_MODELS_TESTS[tgt_hyp][1]
+    )
+    return result
+
 
 if __name__ == "__main__":
-    TGT_HYP = "A"
-    result = LEARNER_MODELS_TESTS[TGT_HYP][0].test_hypothesis(
-        LEARNER_MODELS_TESTS[TGT_HYP][1]
-    )
-    print(f"Result: {result}")
+    from environment.action_spaces import HOActionSpaceB, HOActionSpaceC, HOActionSpaceD
+
+    ACTION_SPACES = {
+        # "B": HOActionSpaceB(),
+        "C": HOActionSpaceC(),
+        "D": HOActionSpaceD(),
+    }
+
+    for action_space_label, action_space in ACTION_SPACES.items():
+        config.ACTION_SPACE = action_space
+        config.DATASET_NAME = f"graph-1{action_space_label}"
+        TGT_HYP = "A"
+        result = main(action_space=action_space, tgt_hyp=TGT_HYP)
+        print(f"Result for Hyp {TGT_HYP} HOActionSpace{action_space_label}: {result}")
+        breakpoint()
