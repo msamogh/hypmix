@@ -143,8 +143,18 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
         )
 
     @staticmethod
+    def generate_state_space_for_uniform_hyp() -> StateSweep:
+        states = np.array(HOStateB.generate_states().states)
+        return StateSweep(
+            state_space_name="uniform_hyp_1",
+            states=np.random.choice(states, int(0.8 * len(states)), replace=False),
+        )
+
+    @staticmethod
     def generate_uniform_state_space(size: str = "small") -> StateSweep:
-        if size == "small":
+        if size == "tiny":
+            states = np.array(HOStateB.generate_states().states)[[0, 50, 100]]
+        elif size == "small":
             states = np.array(HOStateB.generate_states().states)[
                 [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
             ]

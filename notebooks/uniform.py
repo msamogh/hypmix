@@ -1,34 +1,26 @@
 import numpy as np
 from scipy.stats import chisquare
 
+# Example list of values (e.g., categorical data)
+values = [1, 1, 1, 2, 2, 1, 2, 3, 1, 3, 3, 1, 3, 11, 1, 3, 1, 2, 1, 1]
 
-def is_uniform_distribution(values, alpha=0.05):
-    """
-    Test if a set of values over n categories follows a uniform distribution.
+# Count the frequency of each unique value
+unique_values, observed_frequencies = np.unique(values, return_counts=True)
 
-    Parameters:
-    values (list or np.ndarray): The observed frequencies in each category.
-    alpha (float): The significance level (default is 0.05).
+# Calculate the expected frequency if all frequencies were equal
+expected_frequency = len(values) / len(unique_values)
+expected_frequencies = np.full(len(unique_values), expected_frequency)
 
-    Returns:
-    bool: True if the distribution is uniform, False otherwise.
-    """
-    # Convert values to a numpy array if they are not already
-    values = np.array(values)
+# Perform the Chi-Square Goodness of Fit test
+chi2_statistic, p_value = chisquare(observed_frequencies, f_exp=expected_frequencies)
 
-    # The expected frequencies for a uniform distribution
-    expected = np.full_like(values, np.mean(values))
+# Output the result
+print("Chi-Square Statistic:", chi2_statistic)
+print("P-value:", p_value)
 
-    # Perform the chi-square goodness-of-fit test
-    chi2_stat, p_value = chisquare(
-        values, f_exp=np.sum(values) / np.sum(expected) * np.sum(expected)
-    )
-
-    # Return True if p_value is greater than alpha, indicating we fail to reject the null hypothesis
-    return p_value > alpha
-
-
-# Example usage
-values = [10, 19, 8, 11, 9]
-result = is_uniform_distribution(values)
-print("Is uniform distribution:", result)
+# Interpret the result
+alpha = 0.05  # significance level
+if p_value < alpha:
+    print("Reject the null hypothesis: The frequencies are not equal.")
+else:
+    print("Fail to reject the null hypothesis: The frequencies are equal.")

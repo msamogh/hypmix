@@ -98,7 +98,7 @@ class UniformDistributionUncalibrated(Hypothesis):
 
     @property
     def state_sweep(self):
-        return config.STATE_SWEEP_MED
+        return config.STATE_SWEEP_UNIFORM_1
 
     @property
     def is_multi_run_hyp(self):
@@ -119,6 +119,7 @@ class UniformDistributionUncalibrated(Hypothesis):
         return f"As learners get closer and closer to the {self.low_or_high}er end of the {self.learner_characteristic.lower()} spectrum (value of {1 if self.low_or_high == 'low' else 'high'}) are equally likely to perform the following actions. In other words, such a learner exhibits a uniform distribution over these actions: {behavior_actions_list_str()}"
 
     def statistical_test(self, experiment_set_results):
+        import numpy as np
         from scipy.stats import chisquare
 
         tgt_action_labels = self.behavior_actions
@@ -127,15 +128,11 @@ class UniformDistributionUncalibrated(Hypothesis):
             len(experiment_set_results) == 1
         ), "Uniform distribution tests can be run only on a single experiment, not an experiment set."
 
-        # Dummy loop (since there is only one iteration anyway)
-        for experiment_results in experiment_set_results.values():
-            return chisquare(
-                [
-                    experiment_results[f"{action_label.lower()}_percentage"]
-                    for action_label in tgt_action_labels
-                ]
-            )
-        raise RuntimeError("Uniform distribution could not be tested.")
+        values = experiment_set_results["next_actions"]
+        unique_values, observed_frequencies = np.unique(values, return_counts=True)
+        expected_frequency = len(values) / len(unique_values)
+        expected_frequencies = np.full(len(unique_values), expected_frequency)
+        return chisquare(observed_frequencies, f_exp=expected_frequencies)
 
 
 @dataclass
@@ -147,9 +144,9 @@ class MonotonicCalibratedB(MonotonicUncalibrated):
             return ", ".join([f"'{action}'" for action in self.behavior_actions])
 
         if self.positive_relationship:
-            return f"We know from research that learners with higher {self.learner_characteristic.lower()} level are SLIGHTLY more likely to choose among the following actions than learners with low {self.learner_characteristic.lower()}: {behavior_actions_list_str()}. We see a gradual increase in the probability of choosing these actions as {self.learner_characteristic.lower()} increases from 1 to 10. Learners with score 1, 2 will have VERY LOW probability, 3, 4 somewhat LOW, 5 somewhere in between, 7, 8 somewhat high and 9, 10 very high."
+            return f"A learner with a higher {self.learner_characteristic.lower()} level is more likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {behavior_actions_list_str()}. In the event that your commonsense reasoning DIRECTLY conflicts with this hypothesis, use this hypothesis."
         else:
-            return f"We know from research that learners with higher {self.learner_characteristic.lower()} level are SLIGHTLY less likely to choose among the following actions than learners with low {self.learner_characteristic.lower()}: {behavior_actions_list_str()}. We see a gradual decrease in the probability of choosing these actions as {self.learner_characteristic.lower()} increases from 1 to 10. Learners with score 1, 2 will have VERY HIGH probability, 3, 4 somewhat HIGH, 5 somewhere in between, 7, 8 somewhat low and 9, 10 very low."
+            return f"A learner with a higher {self.learner_characteristic.lower()} level is less likely to {self.behavior_description} (i.e., {self.behavior_long_description}). To '{self.behavior_description}' is to make one of the following actions: {behavior_actions_list_str()}. In the event that your commonsense reasoning DIRECTLY conflicts with this hypothesis, use this hypothesis."
 
 
 @dataclass

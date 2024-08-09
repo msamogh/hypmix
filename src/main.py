@@ -11,7 +11,7 @@ random.seed(RANDOM_SEED)
 import config
 
 
-def main(action_space, tgt_hyp):
+def main(dataset_name, action_space, tgt_hyp):
     from experiments.mdhyp import (
         MonotonicCalibratedB,
         MonotonicCalibratedI,
@@ -66,7 +66,9 @@ def main(action_space, tgt_hyp):
                     UniformDistributionUncalibrated, action_space
                 )[0]
             ),
-            None,
+            proficiency_measure_uniform(UniformDistributionUncalibrated, action_space)[
+                0
+            ],
         ),
         "E": (
             Learner(action_space).add_hypothesis(
@@ -126,7 +128,7 @@ def main(action_space, tgt_hyp):
     }
 
     result = LEARNER_MODELS_TESTS[tgt_hyp][0].test_hypothesis(
-        LEARNER_MODELS_TESTS[tgt_hyp][1]
+        tgt_hyp_stack=LEARNER_MODELS_TESTS[tgt_hyp][1], dataset_name=dataset_name
     )
     return result
 
@@ -135,15 +137,19 @@ if __name__ == "__main__":
     from environment.action_spaces import HOActionSpaceB, HOActionSpaceC, HOActionSpaceD
 
     ACTION_SPACES = {
-        # "B": HOActionSpaceB(),
-        "C": HOActionSpaceC(),
-        "D": HOActionSpaceD(),
+        "B": HOActionSpaceB(),
+        # "C": HOActionSpaceC(),
+        # "D": HOActionSpaceD(),
     }
 
+    SUFFIX = "-v10"
+
     for action_space_label, action_space in ACTION_SPACES.items():
+        TGT_HYP = "G"
         config.ACTION_SPACE = action_space
-        config.DATASET_NAME = f"graph-1{action_space_label}"
-        TGT_HYP = "A"
-        result = main(action_space=action_space, tgt_hyp=TGT_HYP)
+        config.DATASET_NAME = f"graph-2-{TGT_HYP}-action-{action_space_label}{SUFFIX}"
+        result = main(
+            dataset_name=config.DATASET_NAME, action_space=action_space, tgt_hyp=TGT_HYP
+        )
         print(f"Result for Hyp {TGT_HYP} HOActionSpace{action_space_label}: {result}")
         breakpoint()

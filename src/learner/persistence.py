@@ -51,7 +51,7 @@ def persist_abandon_num_submissions(
                 action_space=action_space,
                 stat_test_kwargs={
                     "lc_key": "persistence_levels",
-                    "tgt_metric_key": "quit_percentage",
+                    "tgt_metric_key": f"{action_space.exit_action_label.lower()}_percentage",
                 },
                 behavior_description="abandon the task as the number of submissions increases",
                 behavior_long_description="to prematurely exit the session before submitting the right solution",

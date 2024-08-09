@@ -196,13 +196,13 @@ class Learner:
     def test_hypothesis(
         self,
         tgt_hyp_stack: SingleHypothesisStack,
-        dataset_name: Text = config.DATASET_NAME,
+        dataset_name: Text,
         state_sweep_override: Optional[StateSweep] = None,
         tgt_lc_value_range_override: Tuple[int, int] = None,
         fake_llm: bool = False,
-        prompt_name: str = "hebeya/sl-calibration-1",
+        prompt_name: str = "vokiw11262/sl-calibration-cot",
         llm_name: Text = "gpt-4-turbo",
-        llm_temperature: float = 0.05,
+        llm_temperature: float = 0,
         **stat_test_kwargs,
     ):
         """Test whether the target hypothesis is satisfied."""
