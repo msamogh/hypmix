@@ -77,6 +77,16 @@ def main(dataset_name, action_space, tgt_hyp):
             persist_abandon_num_submissions(MonotonicCalibratedB, action_space)[0],
         ),
         "E2": (),
+        "F_pre": (
+            Learner(action_space)
+            .add_hypothesis(
+                proficiency_measure_monotonic(MonotonicCalibratedB, action_space)[0]
+            )
+            .add_hypothesis(
+                proficiency_measure_uniform(UniformCalibratedF, action_space)[0]
+            ),
+            proficiency_measure_uniform(UniformCalibratedF, action_space)[0],
+        ),
         "F": (
             Learner(action_space)
             .add_hypothesis(
@@ -138,16 +148,16 @@ if __name__ == "__main__":
 
     ACTION_SPACES = {
         "B": HOActionSpaceB(),
-        # "C": HOActionSpaceC(),
-        # "D": HOActionSpaceD(),
+        "C": HOActionSpaceC(),
+        "D": HOActionSpaceD(),
     }
 
-    SUFFIX = "-v10"
+    SUFFIX = "-v805"
 
     for action_space_label, action_space in ACTION_SPACES.items():
-        TGT_HYP = "G"
+        TGT_HYP = "F_pre"
         config.ACTION_SPACE = action_space
-        config.DATASET_NAME = f"graph-2-{TGT_HYP}-action-{action_space_label}{SUFFIX}"
+        config.DATASET_NAME = f"node-{TGT_HYP}-actionspace-{action_space_label}{SUFFIX}"
         result = main(
             dataset_name=config.DATASET_NAME, action_space=action_space, tgt_hyp=TGT_HYP
         )

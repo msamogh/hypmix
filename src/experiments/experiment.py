@@ -143,16 +143,29 @@ class Experiment:
     ):
         """Predict over the dataset and log the results."""
 
+        def extract_last_label(text, labels):
+            last_position = -1
+            last_label = None
+
+            # Iterate through the list of candidate labels
+            for label in labels:
+                # Find the last occurrence of the current label in the text
+                position = text.rfind(label)
+
+                # Update the last label and position if this label occurs later
+                if position > last_position:
+                    last_position = position
+                    last_label = label
+
+            return last_label
+
         def extract_action_label(
             action_space: "ActionSpace", message: "AIMessage"
         ) -> Text:
-            for action in action_space.actions.keys():
-                if isinstance(message, str):
-                    if action in message:
-                        return action
-                elif action in message.content:
-                    return action
-            return "UNPREDICTED"
+            text = message if isinstance(message, str) else message.content
+            return (
+                extract_last_label(text, action_space.actions.keys()) or "UNPREDICTED"
+            )
 
         # Run evaluation for the first time
         if fake_llm:

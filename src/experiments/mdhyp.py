@@ -98,7 +98,7 @@ class UniformDistributionUncalibrated(Hypothesis):
 
     @property
     def state_sweep(self):
-        return config.STATE_SWEEP_UNIFORM_1
+        return config.STATE_SWEEP_THOROUGH_K
 
     @property
     def is_multi_run_hyp(self):
@@ -127,12 +127,21 @@ class UniformDistributionUncalibrated(Hypothesis):
         assert (
             len(experiment_set_results) == 1
         ), "Uniform distribution tests can be run only on a single experiment, not an experiment set."
-
-        values = experiment_set_results["next_actions"]
-        unique_values, observed_frequencies = np.unique(values, return_counts=True)
-        expected_frequency = len(values) / len(unique_values)
-        expected_frequencies = np.full(len(unique_values), expected_frequency)
-        return chisquare(observed_frequencies, f_exp=expected_frequencies)
+        # There should only be one experiment.
+        for experiment in experiment_set_results.values():
+            predicted_next_actions = [
+                action
+                for action in experiment["next_actions"]
+                if action in tgt_action_labels
+            ]
+            unique_values, observed_frequencies = np.unique(
+                predicted_next_actions, return_counts=True
+            )
+            expected_frequency = len(predicted_next_actions) / len(unique_values)
+            expected_frequencies = np.full(len(unique_values), expected_frequency)
+            breakpoint()
+            return chisquare(observed_frequencies, f_exp=expected_frequencies)
+        raise ValueError("No experiments found.")
 
 
 @dataclass
@@ -162,9 +171,13 @@ class UniformCalibratedF(UniformDistributionUncalibrated):
     def __str__(self):
 
         def behavior_actions_list_str():
-            return ", ".join([f"'{action}'" for action in self.behavior_actions])
+            import random
+            random.seed(42)
+            behavior_actions = self.behavior_actions.copy()
+            random.shuffle(behavior_actions)
+            return ", ".join([f"'{action}'" for action in behavior_actions])
 
-        return f"We know from research that learners with {self.learner_characteristic.lower()} of 1 are known to mindlessly pick a random action from the following set of actions: {behavior_actions_list_str()}"
+        return f"We know from research that learners with {self.learner_characteristic.lower()} of 1 are known to mindlessly pick a random action from the following set of actions: {behavior_actions_list_str()}. When picking an action, do not use your commonsense reasoning, just blindly follow this rule."
 
 
 @dataclass

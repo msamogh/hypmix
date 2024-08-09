@@ -1,6 +1,7 @@
 import random
 from dataclasses import dataclass, field
 from typing import *
+from itertools import combinations
 
 import numpy as np
 
@@ -132,6 +133,58 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
             states=[
                 HOStateB.generate_state_from_vector(state) for state in result_array
             ],
+        )
+
+    @staticmethod
+    def generate_thorough_state_space(ks, vector_size=10) -> StateSweep:
+        """
+        Generates a 2D array where each row is a vector of size 'vector_size' with exactly 'k' ones,
+        and an appended 11th element that's a random integer increasing with 'k'.
+
+        Parameters:
+        - ks (list[int]): Each k in ks is a number of ones in each vector.
+        - vector_size (int): Size of the vector (default is 10).
+
+        Returns:
+        - np.ndarray: A 2D array of shape (C(vector_size, k), vector_size + 1).
+        """
+        k_results = []
+        for k in ks:
+            if not (0 <= k <= vector_size):
+                raise ValueError(f"k must be between 0 and {vector_size} (inclusive).")
+
+            # Step 1: Generate all combinations of positions for ones
+            index_combinations = list(combinations(range(vector_size), k))
+            num_combinations = len(index_combinations)
+
+            # Initialize the array with zeros
+            combinations_array = np.zeros((num_combinations, vector_size), dtype=int)
+
+            # Set ones at the specified positions
+            for idx, positions in enumerate(index_combinations):
+                combinations_array[idx, list(positions)] = 1
+
+            # Step 2: Define the increasing function for the appended element
+            def increasing_function(sum_of_ones):
+                if sum_of_ones < 2:
+                    return 0  # Return a small random integer if sum_of_ones is 0
+                else:
+                    return sum_of_ones + np.random.randint(
+                        0, int(0.3 * (sum_of_ones + 1)) + 1
+                    )
+
+            # Since sum_of_ones is always k, we can compute the appended values directly
+            appended_values = np.array(
+                [increasing_function(k) for _ in range(num_combinations)]
+            ).reshape(-1, 1)
+
+            # Concatenate the appended values to the combinations array
+            result = np.hstack((appended_values, combinations_array))
+            k_results.append(result)
+        ks_result = np.vstack(k_results)
+        return StateSweep(
+            state_space_name="thorough_k",
+            states=[HOStateB.generate_state_from_vector(row) for row in ks_result],
         )
 
     @staticmethod
