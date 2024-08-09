@@ -240,3 +240,125 @@ PX: {self.PX} (whether the user has measured the distance between Perihelion and
         else:
             raise ValueError
         return StateSweep(state_space_name=f"uniform_state_space_{size}", states=states)
+
+
+@dataclass
+class HOStateC(HOStateB):
+    state_space_name: str = "HOStateSpaceC"
+    minutes_elapsed: int = 0
+
+    def describe_state(self) -> str:
+        return f"""NUM_SUBMISSION_ATTEMPTS (the number of times the user has submitted an answer since the start of the session): {self.num_submission_attempts}
+MINUTES_ELAPSED (number of minutes elapsed since start of the session): {self.minutes_elapsed}
+AP: {self.AP} (whether the user has measured the distance between Aphelion and Perihelion)
+AF1: {self.AF1} (whether the user has measured the distance between Aphelion and Focus 1)
+AF2: {self.AF2} (whether the user has measured the distance between Aphelion and Focus 2)
+AX: {self.AX} (whether the user has measured the distance between Aphelion and the point X on the orbit)
+F1P: {self.F1P} (whether the user has measured the distance between Focus 1 and Perihelion)
+F1F2: {self.F1F2} (whether the user has measured the distance between Focus 1 and Focus 2)
+F1X: {self.F1X} (whether the user has measured the distance between Focus 1 and the point X on the orbit)
+F2P: {self.F2P} (whether the user has measured the distance between Focus 2 and Perihelion)
+F2X: {self.F2X} (whether the user has measured the distance between Focus 2 and the point X on the orbit)
+PX: {self.PX} (whether the user has measured the distance between Perihelion and the point X on the orbit)"""
+
+    @staticmethod
+    def generate_state_from_vector(state: np.ndarray) -> "HOStateC":
+        state = state.tolist()
+        return HOStateC(
+            num_submission_attempts=state[0],
+            minutes_elapsed=state[1],
+            AP=state[2],
+            AF1=state[3],
+            AF2=state[4],
+            AX=state[5],
+            F1P=state[6],
+            F1F2=state[7],
+            F1X=state[8],
+            F2P=state[9],
+            F2X=state[10],
+            PX=state[11],
+        )
+
+    @staticmethod
+    def generate_states(num_state_vars=10, std_dev=1) -> StateSweep:
+        result_array = None
+        # Sample the total number of measurements made so far (S) from a normal distribution
+        for mean in range(0, 11):
+            S = int(np.random.normal(mean, std_dev))
+            S = max(
+                0, min(S, num_state_vars)
+            )  # Ensure S is within the valid range [0, n]
+            T = np.random.randint(0, S + 1)
+
+            # Calculate the probability p
+            p = S / num_state_vars
+
+            # Generate a random count vector that corresponds to number of measurements of *each type* so that it approximately sums up to S (binomial distribution with parameter S).
+            if result_array is None:
+                # Initialize the state space as a 2D array
+                result_array = np.hstack(
+                    (
+                        np.tile([mean], (10, 1)),
+                        np.tile([T], (10, 1)),
+                        np.random.binomial(1, p, (10, num_state_vars)),
+                    )
+                )
+            else:
+                # Add a new state as a new row
+                result_array = np.vstack(
+                    (
+                        result_array,
+                        np.hstack(
+                            (
+                                np.tile([mean], (10, 1)),
+                                np.tile([T], (10, 1)),
+                                np.random.binomial(1, p, (10, num_state_vars)),
+                            )
+                        ),
+                    )
+                )
+        # Generate state objects from row of the 2D result_array
+        return StateSweep(
+            state_space_name="binomial_prior",
+            states=[
+                HOStateC.generate_state_from_vector(state) for state in result_array
+            ],
+        )
+
+    @staticmethod
+    def generate_uniform_state_space(size: str = "small") -> StateSweep:
+        if size == "tiny":
+            states = np.array(HOStateC.generate_states().states)[[0, 50, 100]]
+        elif size == "small":
+            states = np.array(HOStateC.generate_states().states)[
+                [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+            ]
+        elif size == "medium":
+            states = np.array(HOStateC.generate_states().states)[
+                [
+                    0,
+                    5,
+                    10,
+                    15,
+                    20,
+                    25,
+                    30,
+                    35,
+                    40,
+                    45,
+                    50,
+                    55,
+                    60,
+                    65,
+                    70,
+                    75,
+                    80,
+                    85,
+                    90,
+                    95,
+                    100,
+                ]
+            ]
+        else:
+            raise ValueError
+        return StateSweep(state_space_name=f"uniform_state_space_{size}", states=states)

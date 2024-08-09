@@ -14,6 +14,7 @@ import config
 def main(dataset_name, action_space, tgt_hyp):
     from experiments.mdhyp import (
         MonotonicCalibratedB,
+        MonotonicCalibratedE,
         MonotonicCalibratedI,
         MonotonicUncalibrated,
         UniformCalibratedF,
@@ -72,9 +73,9 @@ def main(dataset_name, action_space, tgt_hyp):
         ),
         "E": (
             Learner(action_space).add_hypothesis(
-                persist_abandon_num_submissions(MonotonicCalibratedB, action_space)[0]
+                persist_abandon_time(MonotonicCalibratedE, action_space)[0]
             ),
-            persist_abandon_num_submissions(MonotonicCalibratedB, action_space)[0],
+            persist_abandon_time(MonotonicCalibratedE, action_space)[0],
         ),
         "E2": (),
         "F_pre": (
@@ -152,10 +153,10 @@ if __name__ == "__main__":
         "D": HOActionSpaceD(),
     }
 
-    SUFFIX = "-v805"
+    SUFFIX = "-v2"
 
     for action_space_label, action_space in ACTION_SPACES.items():
-        TGT_HYP = "F_pre"
+        TGT_HYP = "E"
         config.ACTION_SPACE = action_space
         config.DATASET_NAME = f"node-{TGT_HYP}-actionspace-{action_space_label}{SUFFIX}"
         result = main(

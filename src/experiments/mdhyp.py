@@ -5,6 +5,9 @@ from typing import Tuple
 import config
 from environment.action_spaces import ActionSpace
 from environment.state_spaces import StateSweep
+import random
+
+random.seed(42)
 
 
 @dataclass
@@ -98,7 +101,7 @@ class UniformDistributionUncalibrated(Hypothesis):
 
     @property
     def state_sweep(self):
-        return config.STATE_SWEEP_THOROUGH_K
+        return config.STATE_SWEEP_MED
 
     @property
     def is_multi_run_hyp(self):
@@ -159,6 +162,14 @@ class MonotonicCalibratedB(MonotonicUncalibrated):
 
 
 @dataclass
+class MonotonicCalibratedE(MonotonicCalibratedB):
+
+    @property
+    def state_sweep(self):
+        return config.STATE_SWEEP_WITH_TIME_MED
+
+
+@dataclass
 class MonotonicCalibratedI(MonotonicUncalibrated):
 
     def __str__(self):
@@ -171,13 +182,16 @@ class UniformCalibratedF(UniformDistributionUncalibrated):
     def __str__(self):
 
         def behavior_actions_list_str():
-            import random
-            random.seed(42)
             behavior_actions = self.behavior_actions.copy()
             random.shuffle(behavior_actions)
             return ", ".join([f"'{action}'" for action in behavior_actions])
 
-        return f"We know from research that learners with {self.learner_characteristic.lower()} of 1 are known to mindlessly pick a random action from the following set of actions: {behavior_actions_list_str()}. When picking an action, do not use your commonsense reasoning, just blindly follow this rule."
+        def first_random_action():
+            behavior_actions = self.behavior_actions.copy()
+            random.shuffle(behavior_actions)
+            return behavior_actions[0]
+
+        return f"We know for a fact that learners with {self.learner_characteristic.lower()} of 1 mindlessly pick the following action: {first_random_action()}. When picking an action, do not use your commonsense reasoning, just blindly pick this action. Trust me."
 
 
 @dataclass

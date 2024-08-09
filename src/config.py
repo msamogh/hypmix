@@ -1,7 +1,7 @@
 import numpy as np
 
 from environment.action_spaces import HOActionSpaceB, HOActionSpaceC, HOActionSpaceD
-from environment.state_spaces import HOStateB
+from environment.state_spaces import HOStateB, HOStateC
 
 DATASET_NAME = "graph-1c"
 
@@ -11,3 +11,6 @@ STATE_SWEEP_SMALL = HOStateB.generate_uniform_state_space(size="small")
 STATE_SWEEP_MED = HOStateB.generate_uniform_state_space(size="medium")
 STATE_SWEEP_UNIFORM_1 = HOStateB.generate_state_space_for_uniform_hyp()
 STATE_SWEEP_THOROUGH_K = HOStateB.generate_thorough_state_space(ks=[3])
+
+
+STATE_SWEEP_WITH_TIME_MED = HOStateC.generate_uniform_state_space(size="medium")
