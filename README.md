@@ -1,4 +1,4 @@
-# Classroom of LLMs
+# HypMix
 
 ## Setup
 
