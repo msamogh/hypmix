@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the following metadata."
+title: "Can LLMs Reliably Simulate Human Learner Actions? A Simulation Authoring Framework for Open-Ended Learning Environments"
+authors:
+  - given-names: "Amogh"
+    family-names: "Mannekote"
+  - given-names: "Adam"
+    family-names: "Davies"
+  - given-names: "Jina"
+    family-names: "Kang"
+  - given-names: "Kristy Elizabeth"
+    family-names: "Boyer"
+type: "article"
+identifiers:
+  - type: "arXiv"
+    value: "arXiv:2410.02110"
+url: "https://arxiv.org/abs/2410.02110"
